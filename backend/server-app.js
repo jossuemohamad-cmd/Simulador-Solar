@@ -106,9 +106,34 @@ function parseCookies(cookieHeader) {
 }
 
 function readJsonBody(req, maxBytes = 2 * 1024 * 1024) {
-  // Suporte caso um runtime já tenha feito pré-parse de req.body (ex: alguns adaptadores serverless)
-  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
-    return Promise.resolve(req.body);
+  // Suporte caso o runtime (ex.: Vercel Serverless) já tenha feito pré-parse de req.body
+  if (req.body) {
+    if (typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+      return Promise.resolve(req.body);
+    }
+    if (typeof req.body === 'string') {
+      try {
+        return Promise.resolve(JSON.parse(req.body || '{}'));
+      } catch {
+        const err = new Error('JSON inválido no corpo do pedido.');
+        err.statusCode = 400;
+        return Promise.reject(err);
+      }
+    }
+    if (Buffer.isBuffer(req.body)) {
+      try {
+        return Promise.resolve(JSON.parse(req.body.toString('utf8') || '{}'));
+      } catch {
+        const err = new Error('JSON inválido no corpo do pedido.');
+        err.statusCode = 400;
+        return Promise.reject(err);
+      }
+    }
+  }
+
+  // Se o stream já foi consumido pelo servidor/runtime
+  if (req.readableEnded || req.complete) {
+    return Promise.resolve({});
   }
 
   return new Promise((resolve, reject) => {
@@ -289,11 +314,14 @@ function createAppHandler(options = {}) {
   function getAdminRecord() {
     if (memoryAdmin) return memoryAdmin;
     try {
-      if (fs.existsSync(ADMIN_FILE)) {
-        const parsed = JSON.parse(fs.readFileSync(ADMIN_FILE, 'utf8'));
-        if (parsed && parsed.username && parsed.salt && parsed.passwordHash) {
-          memoryAdmin = parsed;
-          return parsed;
+      const pathsToCheck = [ADMIN_FILE, path.join(ROOT, 'data', 'admin.json')];
+      for (const p of pathsToCheck) {
+        if (fs.existsSync(p)) {
+          const parsed = JSON.parse(fs.readFileSync(p, 'utf8'));
+          if (parsed && parsed.username && parsed.salt && parsed.passwordHash) {
+            memoryAdmin = parsed;
+            return parsed;
+          }
         }
       }
     } catch (e) {
@@ -316,17 +344,20 @@ function createAppHandler(options = {}) {
 
   function getCatalog() {
     try {
-      if (fs.existsSync(CATALOG_FILE)) {
-        const parsed = JSON.parse(fs.readFileSync(CATALOG_FILE, 'utf8'));
-        if (
-          parsed &&
-          Array.isArray(parsed.panels) && parsed.panels.length > 0 &&
-          Array.isArray(parsed.inverters) && parsed.inverters.length > 0 &&
-          Array.isArray(parsed.batteries) && parsed.batteries.length > 0
-        ) {
-          stripLegacyObsoleteProducts(parsed);
-          memoryCatalog = parsed;
-          return parsed;
+      const pathsToCheck = [CATALOG_FILE, path.join(ROOT, 'data', 'catalog.json')];
+      for (const p of pathsToCheck) {
+        if (fs.existsSync(p)) {
+          const parsed = JSON.parse(fs.readFileSync(p, 'utf8'));
+          if (
+            parsed &&
+            Array.isArray(parsed.panels) && parsed.panels.length > 0 &&
+            Array.isArray(parsed.inverters) && parsed.inverters.length > 0 &&
+            Array.isArray(parsed.batteries) && parsed.batteries.length > 0
+          ) {
+            stripLegacyObsoleteProducts(parsed);
+            memoryCatalog = parsed;
+            return parsed;
+          }
         }
       }
     } catch (e) {
@@ -497,6 +528,19 @@ function createAppHandler(options = {}) {
 
   async function handleApi(req, res, pathname) {
     const method = (req.method || 'GET').toUpperCase();
+
+    if (method === 'OPTIONS') {
+      res.writeHead(204, {
+        ...SECURITY_HEADERS,
+        'Access-Control-Allow-Origin': req.headers.origin || '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, HEAD',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie, X-Requested-With',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Max-Age': '86400'
+      });
+      res.end();
+      return;
+    }
 
     if (pathname === '/health' && (method === 'GET' || method === 'HEAD')) {
       const payload = { ok: true, status: 'healthy', service: 'lecasu-simulador-solar', timestamp: new Date().toISOString() };
@@ -750,8 +794,19 @@ function createAppHandler(options = {}) {
   return function requestHandler(req, res) {
     let rawPathname;
     try {
-      const parsedUrl = new URL(req.url || '/', 'http://localhost');
+      const headerPath = req.headers['x-matched-path'] || req.headers['x-forwarded-uri'] || req.headers['x-real-url'];
+      let target = (typeof headerPath === 'string' && headerPath.startsWith('/')) ? headerPath : (req.url || '/');
+      const parsedUrl = new URL(target, 'http://localhost');
       rawPathname = decodeURIComponent(parsedUrl.pathname);
+
+      if ((rawPathname === '/api/index.js' || rawPathname === '/api' || rawPathname === '/api/') && req.url && req.url !== rawPathname) {
+        try {
+          const fallbackParsed = new URL(req.url, 'http://localhost');
+          if (fallbackParsed.pathname.startsWith('/api/') || fallbackParsed.pathname === '/health') {
+            rawPathname = decodeURIComponent(fallbackParsed.pathname);
+          }
+        } catch {}
+      }
     } catch {
       res.writeHead(400, { ...SECURITY_HEADERS, 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'URL malformada.' }));
@@ -759,7 +814,12 @@ function createAppHandler(options = {}) {
     }
 
     if (rawPathname === '/health' || rawPathname.startsWith('/api/')) {
-      handleApi(req, res, rawPathname);
+      handleApi(req, res, rawPathname).catch((err) => {
+        console.error('Erro na execução da API:', err);
+        if (!res.headersSent) {
+          sendJson(res, err.statusCode || 500, { error: 'Erro interno no servidor.', detail: err.message });
+        }
+      });
       return;
     }
 
