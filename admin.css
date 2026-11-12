@@ -171,35 +171,89 @@ html, body {
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
-.input-icon-box svg {
+.input-icon-box .input-icon-left,
+.input-icon-box > svg:first-child {
   position: absolute;
-  left: 12px;
-  color: var(--muted-light);
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
   pointer-events: none;
+  z-index: 2;
+  transition: color 0.15s ease;
 }
 
 .input-icon-box input {
-  padding-left: 38px !important;
+  width: 100%;
+  height: 46px;
+  padding-left: 42px !important;
+  padding-right: 44px !important;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--line-strong);
+  background: #ffffff;
+  color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input-icon-box input:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(237, 108, 36, 0.14);
+}
+
+.input-icon-box:focus-within .input-icon-left,
+.input-icon-box:focus-within > svg:first-child {
+  color: var(--orange);
 }
 
 .btn-toggle-pwd {
   position: absolute;
-  right: 10px;
-  background: none;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
   border: none;
   color: var(--muted);
   cursor: pointer;
-  padding: 6px;
-  display: flex;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
   align-items: center;
-  border-radius: 4px;
-  transition: color 0.15s;
+  justify-content: center;
+  border-radius: 6px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  z-index: 3;
 }
 
 .btn-toggle-pwd:hover {
-  color: var(--ink);
+  color: var(--orange);
+  background-color: rgba(237, 108, 36, 0.08);
+}
+
+.btn-toggle-pwd:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 1px;
+}
+
+.btn-toggle-pwd svg,
+#eye-icon {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+  width: 18px !important;
+  height: 18px !important;
+  display: block;
+  stroke: currentColor;
+  pointer-events: none;
+  flex-shrink: 0;
 }
 
 input[type="text"],
