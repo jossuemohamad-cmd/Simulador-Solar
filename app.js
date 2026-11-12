@@ -112,6 +112,20 @@ async function syncCatalogFromServer() {
         Array.isArray(data.batteries) && data.batteries.length > 0
       ) {
         ensureProductImages(data);
+
+        // Preservar fotos Base64 armazenadas localmente — o servidor pode não ter
+        // as imagens personalizadas se forem grandes demais para o JSON remoto
+        const local = adminProducts;
+        ['panels', 'inverters', 'batteries'].forEach((cat) => {
+          if (!Array.isArray(data[cat]) || !Array.isArray(local[cat])) return;
+          data[cat].forEach((srvItem) => {
+            const localItem = local[cat].find((x) => x.id === srvItem.id);
+            if (localItem && localItem.image && localItem.image.startsWith('data:image/')) {
+              srvItem.image = localItem.image;
+            }
+          });
+        });
+
         adminProducts = data;
         saveAdminProductsData(data);
         update();

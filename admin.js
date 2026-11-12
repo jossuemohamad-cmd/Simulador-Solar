@@ -292,6 +292,21 @@ async function fetchCatalogFromServer() {
       const data = await res.json();
       if (Array.isArray(data.panels) && Array.isArray(data.inverters) && Array.isArray(data.batteries)) {
         ensureProductImages(data);
+
+        // IMPORTANTE: preservar fotos Base64 que estão guardadas localmente (localStorage)
+        // O servidor pode não ter a foto (imagens grandes não persistem no JSON do servidor)
+        // Nunca deixar que a resposta do servidor apague uma foto real carregada pelo admin
+        const local = adminProducts;
+        ['panels', 'inverters', 'batteries'].forEach((cat) => {
+          if (!Array.isArray(data[cat]) || !Array.isArray(local[cat])) return;
+          data[cat].forEach((srvItem) => {
+            const localItem = local[cat].find((x) => x.id === srvItem.id);
+            if (localItem && localItem.image && localItem.image.startsWith('data:image/')) {
+              srvItem.image = localItem.image;
+            }
+          });
+        });
+
         adminProducts = data;
         saveLocalProductsData(data);
         updateSyncIndicator('server', 'Servidor Sincronizado');

@@ -279,6 +279,10 @@ function sanitizeProductList(category, list) {
 
     if (!raw.image) {
       delete item.image;
+    } else if (item.image === 'img/products/panel-jinko.svg') {
+      // Se o sanitizador retornou o fallback padrão mas raw.image tinha dados,
+      // significa que a imagem era inválida — remover para usar o fallback automático
+      delete item.image;
     }
     cleanList.push(item);
   }
@@ -579,7 +583,7 @@ function createAppHandler(options = {}) {
       const auth = getAuthenticatedAdmin(req);
       if (!auth) return sendJson(res, 401, { error: 'Sessão expirada ou não autenticada.' });
       try {
-        const body = await readJsonBody(req, 10 * 1024 * 1024);
+        const body = await readJsonBody(req, 50 * 1024 * 1024); // 50 MB para suportar fotos Base64
         const saved = saveCatalogToDisk(body);
         if (!saved) {
           return sendJson(res, 400, { error: 'Estrutura de catálogo inválida ou categoria vazia.' });
