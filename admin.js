@@ -24,6 +24,7 @@ let activeCategory = 'inverters';
 let activeSubFilter = 'all';
 let filterQuery = '';
 let isBackendAvailable = null; // null = ainda não detetado; true/false após /api/auth/me
+let currentUploadedImageDataUrl = ''; // Armazena em memória o data:image/ da foto carregada no modal
 
 const $ = (id) => document.getElementById(id);
 const money = (n) => new Intl.NumberFormat('pt-MZ', { maximumFractionDigits: 0 }).format(n) + ' MT';
@@ -820,6 +821,7 @@ function openNewProductModal() {
     $('form-prod-phase').value = '1ph';
   }
 
+  currentUploadedImageDataUrl = '';
   const brandVal = $('form-prod-brand') ? $('form-prod-brand').value : '';
   const defaultImg = getProductImage(cat, { brand: brandVal });
   if ($('form-prod-image')) $('form-prod-image').value = defaultImg;
@@ -858,6 +860,7 @@ function openEditProductModal(category, productId) {
   $('form-prod-extra').value = item.extra || '';
 
   const prodImg = sanitizeImageUrl(item.image || getProductImage(category, item));
+  currentUploadedImageDataUrl = (prodImg && prodImg.startsWith('data:image/')) ? prodImg : '';
   if ($('form-prod-image')) $('form-prod-image').value = prodImg;
   if ($('form-prod-image-preset')) $('form-prod-image-preset').value = prodImg;
   if ($('form-img-preview')) $('form-img-preview').src = prodImg;
@@ -905,10 +908,25 @@ function processProductImageFile(file) {
     return;
   }
 
+  const btnSave = $('btn-save-prod');
+  const originalSaveHtml = btnSave ? btnSave.innerHTML : '';
+  if (btnSave) {
+    btnSave.disabled = true;
+    btnSave.textContent = 'A processar imagem...';
+  }
+
+  const restoreSaveBtn = () => {
+    if (btnSave) {
+      btnSave.disabled = false;
+      btnSave.innerHTML = originalSaveHtml;
+    }
+  };
+
   // Ficheiros SVG: validar sintaxe e codificar em Data URL
   if (file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg')) {
     const reader = new FileReader();
     reader.onload = (e) => {
+      restoreSaveBtn();
       const svgText = String(e.target.result || '');
       if (!svgText.includes('<svg')) {
         alert('O ficheiro SVG seleccionado parece inválido.');
@@ -921,6 +939,10 @@ function processProductImageFile(file) {
         alert('Erro ao processar ficheiro SVG: ' + err.message);
       }
     };
+    reader.onerror = () => {
+      restoreSaveBtn();
+      alert('Erro ao ler o ficheiro SVG.');
+    };
     reader.readAsText(file);
     return;
   }
@@ -930,6 +952,7 @@ function processProductImageFile(file) {
   reader.onload = (e) => {
     const img = new Image();
     img.onload = () => {
+      restoreSaveBtn();
       const maxDim = 480;
       let width = img.naturalWidth || img.width;
       let height = img.naturalHeight || img.height;
@@ -965,14 +988,20 @@ function processProductImageFile(file) {
       applyUploadedProductImage(dataUrl, file.name, Math.round(dataUrl.length * 0.75));
     };
     img.onerror = () => {
+      restoreSaveBtn();
       alert('Não foi possível ler o ficheiro de imagem selecionado.');
     };
     img.src = e.target.result;
+  };
+  reader.onerror = () => {
+    restoreSaveBtn();
+    alert('Erro ao carregar o ficheiro do computador.');
   };
   reader.readAsDataURL(file);
 }
 
 function applyUploadedProductImage(dataUrl, fileName, approxSizeBytes) {
+  currentUploadedImageDataUrl = dataUrl;
   if ($('form-prod-image')) $('form-prod-image').value = dataUrl;
   if ($('form-img-preview')) $('form-img-preview').src = dataUrl;
 
@@ -989,6 +1018,7 @@ function applyUploadedProductImage(dataUrl, fileName, approxSizeBytes) {
 
 function resetProductImageToDefault() {
   const cat = ($('form-prod-category') && $('form-prod-category').value) || activeCategory;
+  currentUploadedImageDataUrl = '';
   const brandVal = $('form-prod-brand') ? $('form-prod-brand').value : '';
   const defaultImg = getProductImage(cat, { brand: brandVal });
 
@@ -1197,7 +1227,7 @@ async function handleSaveProduct(event) {
   const brand = $('form-prod-brand') ? $('form-prod-brand').value : 'Deye';
   const voltageType = $('form-prod-voltage-type') ? $('form-prod-voltage-type').value : 'LV';
   const phase = $('form-prod-phase') ? $('form-prod-phase').value : '3ph';
-  const rawImg = ($('form-prod-image') && $('form-prod-image').value.trim()) || getProductImage(category, { name, brand, voltageType });
+  const rawImg = currentUploadedImageDataUrl || ($('form-prod-image') && $('form-prod-image').value.trim()) || getProductImage(category, { name, brand, voltageType });
   const image = sanitizeImageUrl(rawImg, getProductImage(category, { name, brand, voltageType }));
 
   if (!name || cap <= 0 || price <= 0) {
@@ -1269,6 +1299,7 @@ async function handleSaveProduct(event) {
       renderSubFilters();
       renderTable();
     }
+    alert('✓ Equipamento e imagem guardados com sucesso no catálogo!');
   } else {
     adminProducts = snapshot;
     saveLocalProductsData(adminProducts);

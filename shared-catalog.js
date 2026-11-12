@@ -219,13 +219,14 @@
 
   function sanitizeImageUrl(url, fallback) {
     const clean = String(url || '').trim();
+    if (!clean) return fallback || '';
     if (/^img\/products\/[a-zA-Z0-9._-]+\.(svg|png|jpe?g|webp)$/i.test(clean)) {
       return clean;
     }
     if (/^https?:\/\/[^\s"'<>]+$/i.test(clean)) {
       return clean;
     }
-    if (/^data:image\/(png|jpe?g|webp|svg\+xml)(?:;charset=[^;,]+)?;base64,[A-Za-z0-9+/=\s]+$/i.test(clean)) {
+    if (/^data:image\/[a-zA-Z0-9.+_-]+;base64,/i.test(clean) && !/[<>"'\r\n]/.test(clean)) {
       return clean;
     }
     return fallback || 'img/products/panel-jinko.svg';
