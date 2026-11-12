@@ -826,6 +826,14 @@ function openNewProductModal() {
   if ($('form-prod-image-preset')) $('form-prod-image-preset').value = defaultImg;
   if ($('form-img-preview')) $('form-img-preview').src = defaultImg;
 
+  // Reset do estado de upload no modal
+  if ($('upload-file-status')) $('upload-file-status').hidden = true;
+  if ($('form-prod-image-file')) $('form-prod-image-file').value = '';
+  const advPanel = $('adv-img-panel');
+  if (advPanel) advPanel.style.display = 'none';
+  const advText = $('adv-img-toggle-text');
+  if (advText) advText.textContent = '+ Usar Imagens Predefinidas LECASU ou URL';
+
   $('modal-prod-title').textContent = 'Cadastrar Novo Equipamento';
   setupModalLabels(cat);
 
@@ -854,6 +862,23 @@ function openEditProductModal(category, productId) {
   if ($('form-prod-image-preset')) $('form-prod-image-preset').value = prodImg;
   if ($('form-img-preview')) $('form-img-preview').src = prodImg;
 
+  // Estado do componente de upload para o produto existente
+  if ($('form-prod-image-file')) $('form-prod-image-file').value = '';
+  const statusBox = $('upload-file-status');
+  const nameEl = $('upload-file-name');
+  if (statusBox && nameEl) {
+    if (prodImg && prodImg.startsWith('data:image/')) {
+      nameEl.textContent = 'Imagem personalizada em base64';
+      statusBox.hidden = false;
+    } else {
+      statusBox.hidden = true;
+    }
+  }
+  const advPanel = $('adv-img-panel');
+  if (advPanel) advPanel.style.display = 'none';
+  const advText = $('adv-img-toggle-text');
+  if (advText) advText.textContent = '+ Usar Imagens Predefinidas LECASU ou URL';
+
   if ($('form-prod-brand')) $('form-prod-brand').value = item.brand || 'Outro';
   if ($('form-prod-voltage-type')) $('form-prod-voltage-type').value = item.voltageType || 'LV';
   if ($('form-prod-phase')) $('form-prod-phase').value = item.phase || '3ph';
@@ -867,10 +892,166 @@ function openEditProductModal(category, productId) {
   updateLivePreview();
 }
 
+function handleProductImageFileSelect(fileInput) {
+  const file = fileInput && fileInput.files && fileInput.files[0];
+  if (!file) return;
+  processProductImageFile(file);
+}
+window.handleProductImageFileSelect = handleProductImageFileSelect;
+
+function processProductImageFile(file) {
+  if (!file || (!file.type.startsWith('image/') && !file.name.toLowerCase().endsWith('.svg'))) {
+    alert('Por favor, selecione um ficheiro de imagem válido (PNG, JPG, JPEG, WEBP ou SVG).');
+    return;
+  }
+
+  // Ficheiros SVG: validar sintaxe e codificar em Data URL
+  if (file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg')) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const svgText = String(e.target.result || '');
+      if (!svgText.includes('<svg')) {
+        alert('O ficheiro SVG seleccionado parece inválido.');
+        return;
+      }
+      try {
+        const base64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgText)));
+        applyUploadedProductImage(base64, file.name, file.size);
+      } catch (err) {
+        alert('Erro ao processar ficheiro SVG: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    return;
+  }
+
+  // Imagens Raster (PNG, JPG, WEBP): converter e redimensionar no Canvas para máxima leveza
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxDim = 480;
+      let width = img.naturalWidth || img.width;
+      let height = img.naturalHeight || img.height;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(width, 1);
+      canvas.height = Math.max(height, 1);
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      let dataUrl;
+      try {
+        dataUrl = canvas.toDataURL('image/webp', 0.88);
+        if (!dataUrl || !dataUrl.startsWith('data:image/webp')) {
+          dataUrl = canvas.toDataURL('image/png');
+        }
+      } catch {
+        dataUrl = canvas.toDataURL('image/png');
+      }
+
+      applyUploadedProductImage(dataUrl, file.name, Math.round(dataUrl.length * 0.75));
+    };
+    img.onerror = () => {
+      alert('Não foi possível ler o ficheiro de imagem selecionado.');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function applyUploadedProductImage(dataUrl, fileName, approxSizeBytes) {
+  if ($('form-prod-image')) $('form-prod-image').value = dataUrl;
+  if ($('form-img-preview')) $('form-img-preview').src = dataUrl;
+
+  const statusBox = $('upload-file-status');
+  const nameEl = $('upload-file-name');
+  if (statusBox && nameEl) {
+    const sizeKb = approxSizeBytes ? Math.round(approxSizeBytes / 1024) : 0;
+    const cleanName = String(fileName || 'imagem').split(/[/\\]/).pop();
+    nameEl.textContent = `${cleanName} (${sizeKb > 0 ? sizeKb + ' KB' : 'Carregado'})`;
+    statusBox.hidden = false;
+  }
+  updateLivePreview();
+}
+
+function resetProductImageToDefault() {
+  const cat = ($('form-prod-category') && $('form-prod-category').value) || activeCategory;
+  const brandVal = $('form-prod-brand') ? $('form-prod-brand').value : '';
+  const defaultImg = getProductImage(cat, { brand: brandVal });
+
+  if ($('form-prod-image')) $('form-prod-image').value = defaultImg;
+  if ($('form-prod-image-preset')) $('form-prod-image-preset').value = defaultImg;
+  if ($('form-img-preview')) $('form-img-preview').src = defaultImg;
+
+  const statusBox = $('upload-file-status');
+  if (statusBox) statusBox.hidden = true;
+  if ($('form-prod-image-file')) $('form-prod-image-file').value = '';
+
+  updateLivePreview();
+}
+window.resetProductImageToDefault = resetProductImageToDefault;
+
+function toggleAdvancedImageOptions() {
+  const panel = $('adv-img-panel');
+  const text = $('adv-img-toggle-text');
+  if (!panel) return;
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? 'block' : 'none';
+  if (text) {
+    text.textContent = isHidden ? '− Ocultar Biblioteca de Imagens / URL' : '+ Usar Imagens Predefinidas LECASU ou URL';
+  }
+}
+window.toggleAdvancedImageOptions = toggleAdvancedImageOptions;
+
+function initImageDropzone() {
+  const dropzone = $('image-upload-dropzone');
+  if (!dropzone) return;
+
+  ['dragenter', 'dragover'].forEach((evt) => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('drag-over');
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach((evt) => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('drag-over');
+    }, false);
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt && dt.files;
+    if (files && files.length > 0) {
+      processProductImageFile(files[0]);
+    }
+  }, false);
+}
+
 function onSelectImagePreset(url) {
   if (!url) return;
   if ($('form-prod-image')) $('form-prod-image').value = url;
   if ($('form-img-preview')) $('form-img-preview').src = sanitizeImageUrl(url);
+  const statusBox = $('upload-file-status');
+  if (statusBox) statusBox.hidden = true;
+  updateLivePreview();
 }
 window.onSelectImagePreset = onSelectImagePreset;
 
@@ -879,6 +1060,7 @@ function updateModalImagePreview(url) {
   if (preview) {
     preview.src = sanitizeImageUrl(url, 'img/products/panel-jinko.svg');
   }
+  updateLivePreview();
 }
 window.updateModalImagePreview = updateModalImagePreview;
 
@@ -956,10 +1138,10 @@ function setupModalLabels(cat) {
 }
 
 function updateLivePreview() {
-  const name = $('form-prod-name').value.trim() || 'Nome do Modelo';
-  const cap = $('form-prod-capacity').value || '0';
-  const price = Number($('form-prod-price').value) || 0;
-  const cat = $('form-prod-category').value;
+  const name = ($('form-prod-name') && $('form-prod-name').value.trim()) || 'Nome do Modelo';
+  const cap = ($('form-prod-capacity') && $('form-prod-capacity').value) || '0';
+  const price = Number($('form-prod-price') && $('form-prod-price').value) || 0;
+  const cat = ($('form-prod-category') && $('form-prod-category').value) || activeCategory;
 
   let unit = 'Wp';
   if (cat === 'inverters') unit = 'kW';
@@ -967,7 +1149,14 @@ function updateLivePreview() {
 
   const preview = $('live-preview-select');
   if (preview) {
-    preview.textContent = `${name} · ${cap} ${unit} (${money(price)})`;
+    const rawImg = ($('form-prod-image') && $('form-prod-image').value) || getProductImage(cat);
+    const safeSrc = sanitizeImageUrl(rawImg, getProductImage(cat));
+    preview.innerHTML = `
+      <div style="display: inline-flex; align-items: center; gap: 8px;">
+        <img src="${safeSrc}" alt="" style="width: 26px; height: 26px; object-fit: contain; border-radius: 4px; border: 1px solid var(--line); background: #ffffff; padding: 2px; flex-shrink: 0;">
+        <span>${escapeHtml(name)} · ${escapeHtml(cap)} ${unit} (${money(price)})</span>
+      </div>
+    `;
   }
 }
 
@@ -1294,6 +1483,7 @@ function initAdmin() {
   if (loginForm) {
     loginForm.addEventListener('submit', handleLogin);
   }
+  initImageDropzone();
   checkAuth();
 }
 

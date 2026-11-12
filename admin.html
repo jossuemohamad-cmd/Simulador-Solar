@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="icon-192.png">
 
-  <link rel="stylesheet" href="admin.css?v=20261112_01">
+  <link rel="stylesheet" href="admin.css?v=20261112_02">
 </head>
 <body>
 
@@ -433,36 +433,64 @@
             <small style="color: var(--muted); font-size: 11px; display: block; margin-top: 3px;">Esta informação é apresentada ao cliente ao seleccionar o modelo no simulador.</small>
           </div>
 
-          <!-- Imagem Oficial do Equipamento -->
-          <div class="form-group" style="margin-top: 12px;">
-            <label for="form-prod-image">Imagem do Equipamento</label>
-            <div style="display: flex; gap: 10px; align-items: center;">
-              <div class="modal-img-preview-box">
+          <!-- Imagem Oficial do Equipamento (Upload do Computador) -->
+          <div class="form-group" style="margin-top: 14px;">
+            <label>Imagem do Equipamento (Upload)</label>
+            <div class="image-upload-wrapper">
+              <div class="modal-img-preview-box" id="img-preview-container" title="Prévia da Imagem">
                 <img id="form-img-preview" src="img/products/panel-jinko.svg" alt="Prévia" class="modal-thumb-img">
               </div>
-              <div style="flex: 1;">
-                <select id="form-prod-image-preset" onchange="onSelectImagePreset(this.value)" style="margin-bottom: 6px; width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line-strong); font-size: 12px; background: #ffffff;">
-                  <option value="">-- Escolher Imagem Predefinida LECASU --</option>
-                  <optgroup label="Painéis Solares (N-Type Bifaciais)">
-                    <option value="img/products/panel-jinko.svg">Jinko Solar (Tiger Neo Bifacial 600W-625W)</option>
-                  </optgroup>
-                  <optgroup label="Inversores Híbridos">
-                    <option value="img/products/inv-megatron-lv.svg">MEGATRON Híbrido LV (48V · 5kW / 12kW)</option>
-                    <option value="img/products/inv-deye-lv.svg">Deye Híbrido LV (48V · 1ph / 3ph)</option>
-                    <option value="img/products/inv-livoltek-lv.svg">LIVOLTEK Híbrido LV (Split-Phase / 3ph)</option>
-                    <option value="img/products/inv-sigen-hv.svg">Sigenergy SigenStor All-in-One HV (900V)</option>
-                  </optgroup>
-                  <optgroup label="Baterias LiFePO4 & BESS">
-                    <option value="img/products/bat-megatron-lv.svg">MEGATRON LiFePO4 (51.2V · 5.12kWh / 16kWh)</option>
-                    <option value="img/products/bat-deye-lv.svg">Deye LiFePO4 Mural 5.12 kWh (LV 51.2V)</option>
-                    <option value="img/products/bat-sigen-hv.svg">Sigenergy Sigen Battery HV Modular</option>
-                    <option value="img/products/bat-livoltek-bhf.svg">LIVOLTEK Torre Modular BHF HV (10-61 kWh)</option>
-                  </optgroup>
-                </select>
-                <input type="text" id="form-prod-image" placeholder="Caminho relativo (ex.: img/products/...) ou URL externa" oninput="updateModalImagePreview(this.value)">
+
+              <div class="image-upload-dropzone" id="image-upload-dropzone">
+                <input type="file" id="form-prod-image-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display: none;" onchange="handleProductImageFileSelect(this)">
+                
+                <div class="dropzone-actions">
+                  <button type="button" class="btn-upload-picker" onclick="$('form-prod-image-file').click()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <span>Carregar Foto do Equipamento</span>
+                  </button>
+                  <span class="dropzone-caption">ou arraste e solte o ficheiro aqui</span>
+                </div>
+
+                <div class="upload-file-status" id="upload-file-status" hidden>
+                  <span class="upload-file-status-icon">✓</span>
+                  <span class="upload-file-name" id="upload-file-name">Imagem carregada</span>
+                  <button type="button" class="btn-clear-upload" onclick="resetProductImageToDefault()" title="Remover e usar padrão">✕</button>
+                </div>
               </div>
             </div>
-            <small style="color: var(--muted); font-size: 11px; display: block; margin-top: 3px;">Selecione uma imagem vetorial predefinida ou insira o caminho do ficheiro.</small>
+
+            <div class="advanced-img-toggle-row">
+              <button type="button" class="btn-link-toggle" onclick="toggleAdvancedImageOptions()">
+                <span id="adv-img-toggle-text">+ Usar Imagens Predefinidas LECASU ou URL</span>
+              </button>
+            </div>
+
+            <div id="adv-img-panel" style="display: none; margin-top: 8px;">
+              <select id="form-prod-image-preset" onchange="onSelectImagePreset(this.value)" style="margin-bottom: 6px; width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line-strong); font-size: 12px; background: #ffffff;">
+                <option value="">-- Escolher Imagem Predefinida LECASU --</option>
+                <optgroup label="Painéis Solares (N-Type Bifaciais)">
+                  <option value="img/products/panel-jinko.svg">Jinko Solar (Tiger Neo Bifacial 600W-625W)</option>
+                  <option value="img/products/panel-canadian.svg">Canadian Solar (BiHiKu7 650W)</option>
+                  <option value="img/products/panel-ja.svg">JA Solar (DeepBlue 4.0 600W)</option>
+                  <option value="img/products/panel-longi.svg">LONGi Solar (Hi-MO X6 580W)</option>
+                </optgroup>
+                <optgroup label="Inversores Híbridos">
+                  <option value="img/products/inv-megatron-lv.svg">MEGATRON Híbrido LV (48V · 5kW / 12kW)</option>
+                  <option value="img/products/inv-deye-lv.svg">Deye Híbrido LV (48V · 1ph / 3ph)</option>
+                  <option value="img/products/inv-livoltek-lv.svg">LIVOLTEK Híbrido LV (Split-Phase / 3ph)</option>
+                  <option value="img/products/inv-sigen-hv.svg">Sigenergy SigenStor All-in-One HV (900V)</option>
+                </optgroup>
+                <optgroup label="Baterias LiFePO4 & BESS">
+                  <option value="img/products/bat-megatron-lv.svg">MEGATRON LiFePO4 (51.2V · 5.12kWh / 16kWh)</option>
+                  <option value="img/products/bat-deye-lv.svg">Deye LiFePO4 Mural 5.12 kWh (LV 51.2V)</option>
+                  <option value="img/products/bat-sigen-hv.svg">Sigenergy Sigen Battery HV Modular</option>
+                  <option value="img/products/bat-livoltek-bhf.svg">LIVOLTEK Torre Modular BHF HV (10-61 kWh)</option>
+                </optgroup>
+              </select>
+              <input type="text" id="form-prod-image" placeholder="Caminho relativo (ex.: img/products/...) ou URL externa" oninput="updateModalImagePreview(this.value)">
+            </div>
+            <small style="color: var(--muted); font-size: 11px; display: block; margin-top: 4px;">Formatos aceites: PNG, JPG, WEBP e SVG. O sistema otimiza a imagem automaticamente para carregamento ultrarrápido.</small>
           </div>
 
           <!-- Preview em Tempo Real de Como Aparecerá na Etapa 3 -->
@@ -483,7 +511,7 @@
     </div>
   </div>
 
-  <script src="shared-catalog.js?v=20261112_01"></script>
-  <script src="admin.js?v=20261112_01"></script>
+  <script src="shared-catalog.js?v=20261112_02"></script>
+  <script src="admin.js?v=20261112_02"></script>
 </body>
 </html>

@@ -225,6 +225,9 @@
     if (/^https?:\/\/[^\s"'<>]+$/i.test(clean)) {
       return clean;
     }
+    if (/^data:image\/(png|jpe?g|webp|svg\+xml)(?:;charset=[^;,]+)?;base64,[A-Za-z0-9+/=\s]+$/i.test(clean)) {
+      return clean;
+    }
     return fallback || 'img/products/panel-jinko.svg';
   }
 

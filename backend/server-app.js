@@ -105,7 +105,7 @@ function parseCookies(cookieHeader) {
   return cookies;
 }
 
-function readJsonBody(req, maxBytes = 512 * 1024) {
+function readJsonBody(req, maxBytes = 2 * 1024 * 1024) {
   // Suporte caso um runtime já tenha feito pré-parse de req.body (ex: alguns adaptadores serverless)
   if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
     return Promise.resolve(req.body);
@@ -519,7 +519,7 @@ function createAppHandler(options = {}) {
       const auth = getAuthenticatedAdmin(req);
       if (!auth) return sendJson(res, 401, { error: 'Sessão expirada ou não autenticada.' });
       try {
-        const body = await readJsonBody(req);
+        const body = await readJsonBody(req, 10 * 1024 * 1024);
         const saved = saveCatalogToDisk(body);
         if (!saved) {
           return sendJson(res, 400, { error: 'Estrutura de catálogo inválida ou categoria vazia.' });
