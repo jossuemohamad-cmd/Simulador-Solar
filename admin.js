@@ -1108,10 +1108,12 @@ function setupModalLabels(cat) {
     subLabel.textContent = 'Módulo Fotovoltaico (Painel)';
     capLabel.textContent = 'Potência Nominal (Wp) *';
     capInput.placeholder = 'Ex.: 605';
-    capInput.step = '1';
-    capInput.min = '10';
+    capInput.step = 'any';
+    capInput.min = '1';
     nameInput.placeholder = 'Ex.: Jinko Tiger Neo Bifacial 605W';
     priceInput.placeholder = 'Ex.: 8100';
+    priceInput.step = 'any';
+    priceInput.min = '0';
     if (grpVolt) grpVolt.style.display = 'none';
     if (grpPhase) grpPhase.style.display = 'none';
   } else if (cat === 'inverters') {
@@ -1119,9 +1121,11 @@ function setupModalLabels(cat) {
     capLabel.textContent = 'Potência Nominal (kW) *';
     capInput.placeholder = 'Ex.: 5, 12, 20 ou 25';
     capInput.step = 'any';
-    capInput.min = '0.5';
+    capInput.min = '0.1';
     nameInput.placeholder = 'Ex.: Deye Híbrido 12 kW (3ph · LV-48)';
     priceInput.placeholder = 'Ex.: 210000';
+    priceInput.step = 'any';
+    priceInput.min = '0';
     if (grpVolt) grpVolt.style.display = 'flex';
     if (grpPhase) grpPhase.style.display = 'flex';
   } else if (cat === 'batteries') {
@@ -1132,6 +1136,8 @@ function setupModalLabels(cat) {
     capInput.min = '0.1';
     nameInput.placeholder = 'Ex.: Deye Battery LiFePO4 5.12 kWh (51.2V-LV)';
     priceInput.placeholder = 'Ex.: 98000';
+    priceInput.step = 'any';
+    priceInput.min = '0';
     if (grpVolt) grpVolt.style.display = 'flex';
     if (grpPhase) grpPhase.style.display = 'none';
   }
