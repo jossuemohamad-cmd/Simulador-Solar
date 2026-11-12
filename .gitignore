@@ -1,0 +1,9 @@
+node_modules/
+data/
+scratch/
+.gemini/
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db

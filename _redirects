@@ -1,0 +1,3 @@
+# Roteamento amigável para o Portal de Administração
+/admin    /admin.html    200
+

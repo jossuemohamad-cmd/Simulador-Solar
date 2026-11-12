@@ -1,0 +1,65 @@
+# ========================================================
+# LECASU — Configuração Apache / cPanel / Hospedagem Web
+# ========================================================
+
+Options -Indexes
+DirectoryIndex index.html
+
+# 0. Bloqueio de ficheiros internos/sensíveis e pasta de dados
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^data(/|$) - [F,L]
+  RewriteRule ^scratch(/|$) - [F,L]
+</IfModule>
+
+<FilesMatch "^(server\.js|package(-lock)?\.json|LEIA-ME_IT\.md|Dockerfile|\.dockerignore|\.vercelignore|vercel\.json|_headers|_redirects)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# 1. Roteamento Amigável
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Atalho amigável para o Portal de Administração
+  RewriteRule ^admin/?$ admin.html [L,QSA]
+</IfModule>
+
+# 2. Tipos MIME Corretos
+<IfModule mod_mime.c>
+  AddType image/svg+xml .svg
+  AddType application/manifest+json .webmanifest
+  AddType application/json .json
+  AddType font/woff2 .woff2
+  AddType font/woff .woff
+</IfModule>
+
+# 3. Compressão Gzip para Carregamento Rápido
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/json image/svg+xml
+</IfModule>
+
+# 4. Headers de Segurança
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+
+  # Cache inteligente: HTML não armazena para sempre refletir versões novas
+  <FilesMatch "\.(html)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+
+  # Cache estático para imagens e estilos com versionamento
+  <FilesMatch "\.(svg|png|jpg|jpeg|gif|webp|ico|woff2|woff)$">
+    Header set Cache-Control "public, max-age=604800, stale-while-revalidate=86400"
+  </FilesMatch>
+</IfModule>
+

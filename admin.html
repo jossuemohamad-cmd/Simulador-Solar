@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="pt-MZ">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Portal de Administração | LECASU Moçambique</title>
+
+  <!-- PWA & Meta Tags -->
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <link rel="stylesheet" href="admin.css?v=20261111_23">
+</head>
+<body>
+
+  <!-- ========================================================
+       TELA DE LOGIN DO ADMINISTRADOR (LIGHT THEME EXECUTIVO)
+       ======================================================== -->
+  <div id="login-screen" class="login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo-box">
+          <img src="logo.png" alt="LECASU - Energy and Engineering Solutions" class="login-logo">
+        </div>
+        <div class="login-badge-pill">Acesso Restrito</div>
+        <h2>Portal Administrativo</h2>
+        <p>Gestão Oficial do Catálogo de Equipamentos Fotovoltaicos</p>
+      </div>
+
+      <div id="login-error-alert" class="alert-box error" style="margin-bottom: 14px;" hidden></div>
+      <div id="login-mode-note" class="alert-box" style="margin-bottom: 14px; background: #fffbeb; color: #b45309; border: 1px solid #fde68a;" hidden></div>
+
+      <form id="login-form" autocomplete="on">
+        <div class="form-group">
+          <label for="login-username">Utilizador ou E-mail</label>
+          <div class="input-icon-box">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input type="text" id="login-username" placeholder="admin@lecasu.co.mz" required autocomplete="username" autofocus>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 14px;">
+          <label for="login-password">Palavra-passe</label>
+          <div class="input-icon-box">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="login-password" placeholder="Introduza a palavra-passe" required autocomplete="current-password">
+            <button type="button" class="btn-toggle-pwd" onclick="togglePasswordVisibility()" title="Mostrar/Ocultar palavra-passe">
+              <svg id="eye-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="login-options">
+          <label class="checkbox-remember">
+            <input type="checkbox" id="remember-me" checked>
+            <span>Manter sessão iniciada</span>
+          </label>
+        </div>
+
+        <button type="submit" id="btn-login-submit" class="btn-login">
+          <span>Aceder ao Painel</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <a href="index.html" class="link-back-sim">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar ao Simulador Solar Público
+        </a>
+        <div class="login-hint">
+          Acesso restrito à equipa técnica e comercial da LECASU LDA.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       PAINEL PRINCIPAL DO ADMINISTRADOR (DASHBOARD WIDESCREEN)
+       ======================================================== -->
+  <div id="admin-dashboard" class="admin-layout" hidden>
+    
+    <!-- Barra Superior Oficial (Estilo IDÊNTICO ao Painel do Cliente) -->
+    <header class="admin-topbar">
+      <div class="brand-badge">
+        <img src="logo.png" alt="Lecasu - Energy and Engineering Solutions" class="brand-logo-img">
+        <span class="tag">Portal Administrativo</span>
+      </div>
+
+      <div class="admin-topbar-actions">
+        <a href="index.html" class="btn-view-sim" target="_blank" rel="noopener" title="Abrir Simulador em nova aba">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <span>Ver Simulador ao Vivo</span>
+        </a>
+
+        <div class="admin-user-info">
+          <div class="user-avatar">AD</div>
+          <div class="user-details">
+            <strong id="auth-user-name">Administrador LECASU</strong>
+            <small id="auth-user-email">admin@lecasu.co.mz</small>
+          </div>
+        </div>
+
+        <button type="button" class="btn-logout" onclick="handleLogout()" title="Terminar sessão com segurança">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>Sair</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Estrutura Widescreen: Sidebar de Navegação + Conteúdo Principal -->
+    <div class="admin-body-container">
+      
+      <!-- Barra Lateral de Navegação (Sidebar) -->
+      <aside class="admin-sidebar">
+        <div class="sidebar-inner">
+          
+          <div class="sidebar-section">
+            <div class="sidebar-section-title">CATÁLOGO DE EQUIPAMENTOS</div>
+            <nav class="sidebar-nav">
+              <button type="button" class="sidebar-nav-item" id="sidebar-nav-panels" onclick="switchCategory('panels')">
+                <div class="sidebar-nav-icon solar">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="12" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="15"/><line x1="15" y1="3" x2="15" y2="15"/><line x1="6" y1="19" x2="18" y2="19"/><line x1="12" y1="15" x2="12" y2="19"/></svg>
+                </div>
+                <div class="sidebar-nav-text">
+                  <span class="sidebar-nav-label">Painéis Solares</span>
+                  <small class="sidebar-nav-sub" id="kpi-panels-sub">Módulos N-Type</small>
+                </div>
+                <span class="sidebar-badge" id="kpi-panels-count">0</span>
+              </button>
+
+              <button type="button" class="sidebar-nav-item active" id="sidebar-nav-inverters" onclick="switchCategory('inverters')">
+                <div class="sidebar-nav-icon inverter">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>
+                </div>
+                <div class="sidebar-nav-text">
+                  <span class="sidebar-nav-label">Inversores Híbridos</span>
+                  <small class="sidebar-nav-sub" id="kpi-inverters-sub">LV 48V / HV 900V</small>
+                </div>
+                <span class="sidebar-badge" id="kpi-inverters-count">0</span>
+              </button>
+
+              <button type="button" class="sidebar-nav-item" id="sidebar-nav-batteries" onclick="switchCategory('batteries')">
+                <div class="sidebar-nav-icon battery">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="16" height="12" rx="2"/><line x1="22" y1="11" x2="22" y2="15"/><line x1="7" y1="11" x2="7" y2="15"/><line x1="11" y1="11" x2="11" y2="15"/></svg>
+                </div>
+                <div class="sidebar-nav-text">
+                  <span class="sidebar-nav-label">Baterias LiFePO4</span>
+                  <small class="sidebar-nav-sub" id="kpi-batteries-sub">Armazenamento BESS</small>
+                </div>
+                <span class="sidebar-badge" id="kpi-batteries-count">0</span>
+              </button>
+            </nav>
+          </div>
+
+          <div class="sidebar-section" style="margin-top: 24px;">
+            <div class="sidebar-section-title">ADMINISTRAÇÃO & SEGURANÇA</div>
+            <nav class="sidebar-nav">
+              <button type="button" class="sidebar-nav-item" id="sidebar-nav-settings" onclick="switchCategory('settings')">
+                <div class="sidebar-nav-icon settings">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </div>
+                <div class="sidebar-nav-text">
+                  <span class="sidebar-nav-label">Configurações & Backup</span>
+                  <small class="sidebar-nav-sub">Palavra-passe e JSON</small>
+                </div>
+              </button>
+            </nav>
+          </div>
+
+        </div>
+
+        <div class="sidebar-footer">
+          <div class="sidebar-sync-status">
+            <span class="status-pulse-dot" id="sidebar-sync-dot"></span>
+            <span id="sidebar-sync-text">A verificar ligação...</span>
+          </div>
+          <div class="sidebar-version-tag">LECASU Solar Suite · v2.5 Pro</div>
+        </div>
+      </aside>
+
+      <!-- Conteúdo Principal Workspace -->
+      <main class="admin-main">
+        
+        <!-- Cabeçalho da Página e Botão de Ação -->
+        <section class="admin-header-section">
+          <div>
+            <h1 id="page-header-title">Catálogo de Equipamentos Fotovoltaicos</h1>
+            <p id="page-header-desc">Os equipamentos cadastrados aqui ficam automaticamente disponíveis para selecção e dimensionamento pelos clientes na Etapa 3 do simulador.</p>
+          </div>
+          <div class="header-action-btns">
+            <button type="button" class="btn-primary" onclick="openNewProductModal()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Novo Equipamento</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Barra de Controlos Unificada (Dropdown de Categorias, Filtros e Busca Rápida) -->
+        <section class="admin-controls-card">
+          <div class="admin-filter-bar">
+            
+            <!-- Dropdown de Categorias -->
+            <div class="filter-dropdown-group">
+              <label for="admin-category-select" class="filter-label">Categoria Principal</label>
+              <div class="select-wrapper">
+                <select id="admin-category-select" onchange="switchCategory(this.value)">
+                  <option value="inverters">⚡ Inversores Híbridos & Controladores</option>
+                  <option value="panels">☀️ Painéis Fotovoltaicos (Módulos)</option>
+                  <option value="batteries">🔋 Baterias LiFePO4 & Armazenamento</option>
+                  <option value="settings">⚙️ Configurações & Backup do Sistema</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Dropdown de Subfiltros (Tensão / Marcas / Fases) -->
+            <div class="filter-dropdown-group" id="subfilter-field-wrapper">
+              <label for="admin-subfilter-select" class="filter-label">Filtro / Tensão / Fabricante</label>
+              <div class="select-wrapper">
+                <select id="admin-subfilter-select" onchange="onSubFilterDropdownChange(this.value)">
+                  <option value="all">Todos os Equipamentos</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Pesquisa de Texto -->
+            <div class="table-search-box" id="table-search-container">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="admin-search-input" placeholder="Pesquisar por modelo, fabricante ou potência..." oninput="handleTableSearch(this.value)">
+            </div>
+
+            <!-- Contador de Itens Activos -->
+            <div class="filter-count-badge-box">
+              <span id="current-category-title" class="current-cat-name">Inversores Híbridos</span>
+              <span id="current-category-count" class="catalog-count-pill">0 equipamentos</span>
+            </div>
+
+          </div>
+
+          <!-- Barra de Subfiltros Dinâmicos em Chips Rápidos -->
+          <div id="admin-subfilters-bar" class="admin-subfilters-bar"></div>
+        </section>
+
+        <!-- Vista de Tabela de Produtos -->
+        <div id="view-products" class="tab-view-content">
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 28%;">Equipamento / Modelo</th>
+                    <th style="width: 18%;">Tensão & Fases</th>
+                    <th style="width: 14%;">Capacidade</th>
+                    <th style="width: 16%;">Preço Unitário (MZN)</th>
+                    <th style="width: 14%;">Detalhes Técnicos</th>
+                    <th style="width: 10%; text-align: right;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="products-table-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vista de Configurações & Segurança -->
+        <div id="view-settings" class="tab-view-content" hidden>
+          <div class="settings-grid">
+            
+            <!-- Alterar Palavra-passe de Acesso -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <h3>Segurança de Acesso</h3>
+              </div>
+              <p class="settings-desc">Altere a palavra-passe utilizada pela equipa técnica para aceder a esta página de administração.</p>
+              
+              <form id="form-change-pwd" onsubmit="handleChangePassword(event)">
+                <div class="form-group">
+                  <label for="cfg-current-pwd">Palavra-passe actual *</label>
+                  <input type="password" id="cfg-current-pwd" required placeholder="••••••••">
+                </div>
+                <div class="form-group" style="margin-top: 10px;">
+                  <label for="cfg-new-pwd">Nova palavra-passe *</label>
+                  <input type="password" id="cfg-new-pwd" required minlength="6" placeholder="Mínimo 6 caracteres">
+                </div>
+                <div class="form-group" style="margin-top: 10px;">
+                  <label for="cfg-confirm-pwd">Confirmar nova palavra-passe *</label>
+                  <input type="password" id="cfg-confirm-pwd" required minlength="6" placeholder="Repita a nova palavra-passe">
+                </div>
+
+                <div id="pwd-change-msg" class="alert-box" hidden></div>
+
+                <div style="margin-top: 16px; text-align: right;">
+                  <button type="submit" class="btn-primary btn-sm">Atualizar Palavra-passe</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Backup & Restauro de Catálogo -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <h3>Backup e Restauro do Catálogo</h3>
+              </div>
+              <p class="settings-desc">Exporte ou importe a lista completa dos produtos para partilhar entre dispositivos ou repor os preços de fábrica da LECASU.</p>
+
+              <div class="settings-action-rows">
+                <div class="action-row">
+                  <div>
+                    <strong>Exportar Catálogo (JSON)</strong>
+                    <div style="font-size: 11px; color: var(--muted);">Descarrega um ficheiro com todos os painéis, inversores e baterias actuais.</div>
+                  </div>
+                  <button type="button" class="btn-secondary btn-sm" onclick="exportCatalogJson()">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Exportar
+                  </button>
+                </div>
+
+                <div class="action-row">
+                  <div>
+                    <strong>Importar Catálogo (JSON)</strong>
+                    <div style="font-size: 11px; color: var(--muted);">Substitui o catálogo pelo conteúdo de um ficheiro JSON previamente guardado.</div>
+                  </div>
+                  <label class="btn-secondary btn-sm" style="cursor: pointer; margin-bottom: 0;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Importar
+                    <input type="file" id="import-json-input" accept=".json" style="display: none;" onchange="importCatalogJson(event)">
+                  </label>
+                </div>
+
+                <div class="action-row danger-row">
+                  <div>
+                    <strong style="color: #b33924;">Repor Catálogo Padrão LECASU</strong>
+                    <div style="font-size: 11px; color: var(--muted);">Restaura a lista oficial completa da LECASU (Jinko Tiger Neo, MEGATRON, Deye, LIVOLTEK e Sigenergy).</div>
+                  </div>
+                  <button type="button" class="btn-danger btn-sm" onclick="confirmResetDefaults()">
+                    Restaurar Padrões
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL DE CADASTRO / EDIÇÃO DE PRODUTO
+       ======================================================== -->
+  <div id="product-modal" class="modal-backdrop" hidden onclick="handleProductModalBackdrop(event)">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-prod-title">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="modal-icon-header">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </div>
+          <div>
+            <h3 id="modal-prod-title">Cadastrar Novo Equipamento</h3>
+            <small id="modal-prod-sub" style="color: var(--muted); font-size: 11.5px;">Módulo Fotovoltaico</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" onclick="closeProductModal()" aria-label="Fechar">×</button>
+      </div>
+
+      <form id="product-form" onsubmit="handleSaveProduct(event)">
+        <input type="hidden" id="form-prod-id" value="">
+        <input type="hidden" id="form-prod-category" value="panels">
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="form-prod-name">Marca e Modelo do Equipamento <span class="req">*</span></label>
+            <input type="text" id="form-prod-name" placeholder="Ex.: Jinko Solar 570 Wp Tiger Pro" required maxlength="80">
+          </div>
+
+          <div class="form-grid-3" style="margin-top: 12px;">
+            <div class="form-group">
+              <label for="form-prod-brand">Fabricante / Marca <span class="req">*</span></label>
+              <select id="form-prod-brand" onchange="onBrandSelectChange(this.value)">
+                <option value="MEGATRON">MEGATRON</option>
+                <option value="Deye">Deye</option>
+                <option value="LIVOLTEK">LIVOLTEK</option>
+                <option value="Sigenergy">Sigenergy (SigenStor)</option>
+                <option value="Jinko Solar">Jinko Solar</option>
+                <option value="Canadian Solar">Canadian Solar</option>
+                <option value="JA Solar">JA Solar</option>
+                <option value="Longi Solar">Longi Solar</option>
+                <option value="Outro">Outro Fabricante</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="grp-voltage-type">
+              <label for="form-prod-voltage-type">Tensão do Barramento</label>
+              <select id="form-prod-voltage-type">
+                <option value="LV">Baixa Tensão (LV ~48V/51.2V)</option>
+                <option value="HV">Alta Tensão (HV ~100-900V)</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="grp-phase">
+              <label for="form-prod-phase">Topologia de Fases</label>
+              <select id="form-prod-phase">
+                <option value="1ph">Monofásico (1ph)</option>
+                <option value="split">Split-Phase (Bifásico)</option>
+                <option value="3ph">Trifásico (3ph)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid-2" style="margin-top: 12px;">
+            <div class="form-group">
+              <label id="lbl-form-capacity" for="form-prod-capacity">Potência Nominal (Wp) <span class="req">*</span></label>
+              <input type="number" id="form-prod-capacity" placeholder="570" required min="0.1" step="any">
+            </div>
+
+            <div class="form-group">
+              <label for="form-prod-price">Preço Unitário (MZN) <span class="req">*</span></label>
+              <input type="number" id="form-prod-price" placeholder="7500" required min="1" step="10">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 12px;">
+            <label id="lbl-form-extra" for="form-prod-extra">Detalhes Técnicos / Tecnologia</label>
+            <input type="text" id="form-prod-extra" placeholder="Ex.: Mono-PERC N-Type Tier 1" maxlength="70">
+            <small style="color: var(--muted); font-size: 11px; display: block; margin-top: 3px;">Esta informação é apresentada ao cliente ao seleccionar o modelo no simulador.</small>
+          </div>
+
+          <!-- Imagem Oficial do Equipamento -->
+          <div class="form-group" style="margin-top: 12px;">
+            <label for="form-prod-image">Imagem do Equipamento</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <div class="modal-img-preview-box">
+                <img id="form-img-preview" src="img/products/panel-jinko.svg" alt="Prévia" class="modal-thumb-img">
+              </div>
+              <div style="flex: 1;">
+                <select id="form-prod-image-preset" onchange="onSelectImagePreset(this.value)" style="margin-bottom: 6px; width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line-strong); font-size: 12px; background: #ffffff;">
+                  <option value="">-- Escolher Imagem Predefinida LECASU --</option>
+                  <optgroup label="Painéis Solares (N-Type Bifaciais)">
+                    <option value="img/products/panel-jinko.svg">Jinko Solar (Tiger Neo Bifacial 600W-625W)</option>
+                  </optgroup>
+                  <optgroup label="Inversores Híbridos">
+                    <option value="img/products/inv-megatron-lv.svg">MEGATRON Híbrido LV (48V · 5kW / 12kW)</option>
+                    <option value="img/products/inv-deye-lv.svg">Deye Híbrido LV (48V · 1ph / 3ph)</option>
+                    <option value="img/products/inv-livoltek-lv.svg">LIVOLTEK Híbrido LV (Split-Phase / 3ph)</option>
+                    <option value="img/products/inv-sigen-hv.svg">Sigenergy SigenStor All-in-One HV (900V)</option>
+                  </optgroup>
+                  <optgroup label="Baterias LiFePO4 & BESS">
+                    <option value="img/products/bat-megatron-lv.svg">MEGATRON LiFePO4 (51.2V · 5.12kWh / 16kWh)</option>
+                    <option value="img/products/bat-deye-lv.svg">Deye LiFePO4 Mural 5.12 kWh (LV 51.2V)</option>
+                    <option value="img/products/bat-sigen-hv.svg">Sigenergy Sigen Battery HV Modular</option>
+                    <option value="img/products/bat-livoltek-bhf.svg">LIVOLTEK Torre Modular BHF HV (10-61 kWh)</option>
+                  </optgroup>
+                </select>
+                <input type="text" id="form-prod-image" placeholder="Caminho relativo (ex.: img/products/...) ou URL externa" oninput="updateModalImagePreview(this.value)">
+              </div>
+            </div>
+            <small style="color: var(--muted); font-size: 11px; display: block; margin-top: 3px;">Selecione uma imagem vetorial predefinida ou insira o caminho do ficheiro.</small>
+          </div>
+
+          <!-- Preview em Tempo Real de Como Aparecerá na Etapa 3 -->
+          <div class="preview-box-live">
+            <div style="font-size: 10.5px; font-weight: 700; color: var(--orange-hover); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Pré-visualização no Simulador do Cliente:</div>
+            <div id="live-preview-select" class="preview-select-pill">-</div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeProductModal()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="btn-save-prod">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Guardar Equipamento</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="shared-catalog.js?v=20261111_23"></script>
+  <script src="admin.js?v=20261111_23"></script>
+</body>
+</html>

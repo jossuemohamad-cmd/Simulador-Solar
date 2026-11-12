@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="sigenDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2d3748"/>
+      <stop offset="50%" stop-color="#1a202c"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="sigenGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <!-- SigenStor Curved Monolith -->
+  <rect x="25" y="10" width="70" height="100" rx="14" fill="url(#sigenDark)" stroke="#475569" stroke-width="1.5"/>
+  <!-- Top Signature Arc -->
+  <path d="M28 20 Q60 12 92 20" stroke="url(#sigenGlow)" stroke-width="2.5" fill="none"/>
+  <!-- Sigen Energy Logo / Text -->
+  <text x="60" y="38" fill="#f8fafc" font-size="8" font-weight="900" font-family="sans-serif" text-anchor="middle" letter-spacing="1">SIGENSTOR</text>
+  <text x="60" y="47" fill="#94a3b8" font-size="5" font-family="sans-serif" text-anchor="middle">5-in-1 ALL-IN-ONE</text>
+  <!-- AI Controller Center Icon -->
+  <rect x="42" y="56" width="36" height="30" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="1.2"/>
+  <circle cx="60" cy="71" r="7" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
+  <path d="M60 66 L60 76 M55 71 L65 71" stroke="#38bdf8" stroke-width="1.5"/>
+  <!-- HV 900V Tag -->
+  <rect x="36" y="93" width="48" height="9" rx="3" fill="#3b82f6"/>
+  <text x="60" y="100" fill="#ffffff" font-size="5.5" font-weight="bold" font-family="sans-serif" text-anchor="middle">HV-900V · 3PH</text>
+</svg>
+

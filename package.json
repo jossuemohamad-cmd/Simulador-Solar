@@ -1,0 +1,21 @@
+{
+  "name": "lecasu-simulador-solar",
+  "version": "1.0.0",
+  "description": "LECASU — Simulador Solar Fotovoltaico & Portal Administrativo (PWA)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "serve": "node server.js"
+  },
+  "keywords": [
+    "solar",
+    "simulator",
+    "pwa",
+    "lecasu",
+    "mozambique"
+  ],
+  "author": "LECASU LDA",
+  "license": "ISC"
+}
+

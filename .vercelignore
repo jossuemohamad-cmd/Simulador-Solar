@@ -1,0 +1,8 @@
+server.js
+LEIA-ME_IT.md
+Dockerfile
+.dockerignore
+data/
+scratch/
+*.log
+
