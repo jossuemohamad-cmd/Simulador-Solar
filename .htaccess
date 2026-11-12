@@ -5,10 +5,12 @@
 Options -Indexes
 DirectoryIndex index.html
 
-# 0. Bloqueio de ficheiros internos/sensíveis e pasta de dados
+# 0. Bloqueio de ficheiros internos/sensíveis e pastas do servidor
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteRule ^data(/|$) - [F,L]
+  RewriteRule ^backend(/|$) - [F,L]
+  RewriteRule ^api(/|$) - [F,L]
   RewriteRule ^scratch(/|$) - [F,L]
 </IfModule>
 

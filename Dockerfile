@@ -17,5 +17,5 @@ ENV PORT=5500
 EXPOSE 5500
 
 # Executa o servidor nativo leve
-CMD ["node", "server.js"]
+CMD ["node", "backend/server-app.js"]
 

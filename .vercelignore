@@ -1,8 +1,7 @@
-server.js
 LEIA-ME_IT.md
 Dockerfile
 .dockerignore
+.htaccess
 data/
 scratch/
 *.log
-

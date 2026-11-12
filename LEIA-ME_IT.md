@@ -15,7 +15,7 @@ Este projeto é uma aplicação web moderna, responsiva e PWA (Progressive Web A
   * **Utilizador:** `admin@lecasu.co.mz` (ou apenas `admin`)
   * **Palavra-passe:** `lecasu2026`
 * **Alteração de Palavra-passe & Variáveis de Ambiente:** Na aba *Configurações & Backup* do portal, a palavra-passe pode ser alterada a qualquer momento (com persistência encriptada via `scrypt` em `data/admin.json` no servidor Node.js). Em produção Node/Docker, pode também definir `ADMIN_USER`, `ADMIN_PASSWORD` e `SESSION_SECRET`.
-* **Sessão Protegida:** Quando executado via `server.js`, a sessão administrativa utiliza cookie `HttpOnly; SameSite=Strict` assinado por HMAC no servidor, e ficheiros internos (`server.js`, `LEIA-ME_IT.md`, `data/`) são bloqueados de acesso HTTP direto.
+* **Sessão Protegida:** Quando executado via [`backend/server-app.js`](backend/server-app.js), a sessão administrativa utiliza cookie `HttpOnly; SameSite=Strict` assinado por HMAC no servidor, e ficheiros internos (`backend/`, `LEIA-ME_IT.md`, `data/`) são bloqueados de acesso HTTP direto.
 
 ---
 
@@ -30,7 +30,10 @@ LECASU_Simulador_Solar/
 ├── admin.html          # Portal de Administração (Restrito por autenticação)
 ├── admin.css           # Estilos dedicados do painel administrativo
 ├── admin.js            # Lógica de login, operações CRUD e sincronização com backend
-├── server.js           # Servidor HTTP + API REST (/api/products, /api/auth/*, /api/quotes, /health)
+├── backend/
+│   └── server-app.js   # Servidor HTTP + API REST (/api/products, /api/auth/*, /api/quotes, /health)
+├── api/
+│   └── index.js        # Entrypoint Vercel Serverless Function (/api/* e /health)
 ├── sw.js               # Service Worker PWA v23 (Offline e pré-cache de ilustrações)
 ├── manifest.json       # Manifesto PWA com tema oficial da LECASU
 ├── .htaccess           # Configuração de produção para Apache / cPanel / Shared Hosting
@@ -80,7 +83,7 @@ O projeto está 100% pronto para produção e pode ser publicado imediatamente a
    *(Ou com PM2 para manter o processo sempre ativo em segundo plano):*
    ```bash
    npm install -g pm2
-   pm2 start server.js --name "lecasu-solar"
+   pm2 start backend/server-app.js --name "lecasu-solar"
    pm2 save
    ```
 3. A porta padrão é `5500` (ou a definida pela variável de ambiente `PORT`).

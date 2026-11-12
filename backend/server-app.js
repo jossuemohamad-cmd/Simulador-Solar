@@ -1,22 +1,21 @@
 /**
  * LECASU — Servidor de Produção & API REST Nativa Node.js
- * Fornece ficheiros públicos seguros (allowlist), autenticação com cookie HttpOnly,
- * persistência do catálogo oficial e registo de propostas preliminares.
+ * Compatível com Servidor Node tradicional (VPS/Docker) e Vercel Serverless (/api/index.js).
  */
 
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const crypto = require('crypto');
 const {
   cloneDefaults,
   ensureProductImages,
   sanitizeImageUrl,
   stripLegacyObsoleteProducts
-} = require('./shared-catalog.js');
+} = require('../shared-catalog.js');
 
 const DEFAULT_PORT = Number(process.env.PORT) || 5500;
-const DEFAULT_ROOT = __dirname;
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -107,6 +106,11 @@ function parseCookies(cookieHeader) {
 }
 
 function readJsonBody(req, maxBytes = 512 * 1024) {
+  // Suporte caso um runtime já tenha feito pré-parse de req.body (ex: alguns adaptadores serverless)
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+    return Promise.resolve(req.body);
+  }
+
   return new Promise((resolve, reject) => {
     let total = 0;
     const chunks = [];
@@ -119,7 +123,7 @@ function readJsonBody(req, maxBytes = 512 * 1024) {
         settled = true;
         const err = new Error('Payload demasiado grande.');
         err.statusCode = 413;
-        req.destroy();
+        if (typeof req.destroy === 'function') req.destroy();
         reject(err);
         return;
       }
@@ -153,11 +157,34 @@ function readJsonBody(req, maxBytes = 512 * 1024) {
 }
 
 function writeJsonAtomic(filePath, data) {
-  const dir = path.dirname(filePath);
-  fs.mkdirSync(dir, { recursive: true });
-  const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}`;
-  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf8');
-  fs.renameSync(tmpPath, filePath);
+  try {
+    const dir = path.dirname(filePath);
+    fs.mkdirSync(dir, { recursive: true });
+    const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}`;
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf8');
+    fs.renameSync(tmpPath, filePath);
+    return true;
+  } catch (e) {
+    console.warn('Aviso ao gravar ficheiro JSON:', e.message);
+    return false;
+  }
+}
+
+function resolveRootDir(customRoot) {
+  if (customRoot) return path.resolve(customRoot);
+  const parent = path.resolve(__dirname, '..');
+  if (fs.existsSync(path.join(parent, 'index.html'))) return parent;
+  if (fs.existsSync(path.join(__dirname, 'index.html'))) return __dirname;
+  return process.cwd();
+}
+
+function resolveWritableDataDir(customDir, rootDir) {
+  if (customDir) return path.resolve(customDir);
+  if (process.env.LECASU_DATA_DIR) return path.resolve(process.env.LECASU_DATA_DIR);
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NOW_REGION) {
+    return path.join(os.tmpdir(), 'lecasu-data');
+  }
+  return path.join(rootDir, 'data');
 }
 
 function sanitizeProductList(category, list) {
@@ -219,8 +246,8 @@ function sanitizeProductList(category, list) {
 }
 
 function createAppHandler(options = {}) {
-  const ROOT = path.resolve(options.rootDir || DEFAULT_ROOT);
-  const DATA_DIR = path.resolve(options.dataDir || process.env.LECASU_DATA_DIR || path.join(ROOT, 'data'));
+  const ROOT = resolveRootDir(options.rootDir);
+  const DATA_DIR = resolveWritableDataDir(options.dataDir, ROOT);
   const CATALOG_FILE = path.join(DATA_DIR, 'catalog.json');
   const ADMIN_FILE = path.join(DATA_DIR, 'admin.json');
   const QUOTES_FILE = path.join(DATA_DIR, 'quotes.json');
@@ -231,6 +258,9 @@ function createAppHandler(options = {}) {
   const INITIAL_PASS = options.adminPassword || process.env.ADMIN_PASSWORD || 'lecasu2026';
 
   const loginAttempts = new Map();
+  let memoryCatalog = null;
+  let memoryAdmin = null;
+  let memoryQuotes = null;
 
   function getSessionSecret() {
     if (options.sessionSecret) return options.sessionSecret;
@@ -240,22 +270,29 @@ function createAppHandler(options = {}) {
         const existing = fs.readFileSync(SECRET_FILE, 'utf8').trim();
         if (existing.length >= 32) return existing;
       }
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-      const generated = crypto.randomBytes(32).toString('hex');
-      fs.writeFileSync(SECRET_FILE, generated, { encoding: 'utf8', mode: 0o600 });
-      return generated;
-    } catch {
-      return crypto.randomBytes(32).toString('hex');
-    }
+      if (!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NOW_REGION)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+        const generated = crypto.randomBytes(32).toString('hex');
+        fs.writeFileSync(SECRET_FILE, generated, { encoding: 'utf8', mode: 0o600 });
+        return generated;
+      }
+    } catch {}
+    // Em ambiente serverless multi-instância sem SESSION_SECRET explícito, deriva chave consistente
+    return crypto
+      .createHmac('sha256', 'lecasu-serverless-session-key')
+      .update(`${INITIAL_USER}|${INITIAL_PASS}|${process.env.VERCEL_PROJECT_ID || 'local'}`)
+      .digest('hex');
   }
 
   const SESSION_SECRET = getSessionSecret();
 
   function getAdminRecord() {
+    if (memoryAdmin) return memoryAdmin;
     try {
       if (fs.existsSync(ADMIN_FILE)) {
         const parsed = JSON.parse(fs.readFileSync(ADMIN_FILE, 'utf8'));
         if (parsed && parsed.username && parsed.salt && parsed.passwordHash) {
+          memoryAdmin = parsed;
           return parsed;
         }
       }
@@ -270,8 +307,9 @@ function createAppHandler(options = {}) {
       name: 'Administrador LECASU',
       salt,
       passwordHash,
-      updatedAt: new Date().toISOString()
+      updatedAt: 'initial'
     };
+    memoryAdmin = initial;
     writeJsonAtomic(ADMIN_FILE, initial);
     return initial;
   }
@@ -287,6 +325,7 @@ function createAppHandler(options = {}) {
           Array.isArray(parsed.batteries) && parsed.batteries.length > 0
         ) {
           stripLegacyObsoleteProducts(parsed);
+          memoryCatalog = parsed;
           return parsed;
         }
       }
@@ -294,8 +333,11 @@ function createAppHandler(options = {}) {
       console.warn('Erro ao ler catalog.json:', e.message);
     }
 
+    if (memoryCatalog) return memoryCatalog;
+
     const seeded = cloneDefaults();
     seeded.updatedAt = new Date().toISOString();
+    memoryCatalog = seeded;
     writeJsonAtomic(CATALOG_FILE, seeded);
     return seeded;
   }
@@ -314,6 +356,7 @@ function createAppHandler(options = {}) {
       updatedAt: new Date().toISOString()
     };
     ensureProductImages(cleanCatalog);
+    memoryCatalog = cleanCatalog;
     writeJsonAtomic(CATALOG_FILE, cleanCatalog);
     return cleanCatalog;
   }
@@ -492,6 +535,7 @@ function createAppHandler(options = {}) {
       if (!auth) return sendJson(res, 401, { error: 'Sessão expirada ou não autenticada.' });
       const reset = cloneDefaults();
       reset.updatedAt = new Date().toISOString();
+      memoryCatalog = reset;
       writeJsonAtomic(CATALOG_FILE, reset);
       return sendJson(res, 200, { ok: true, catalog: reset });
     }
@@ -506,7 +550,7 @@ function createAppHandler(options = {}) {
     }
 
     if (pathname === '/api/auth/login' && method === 'POST') {
-      const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').split(',')[0].trim();
+      const ip = (req.headers['x-forwarded-for'] || (req.socket && req.socket.remoteAddress) || 'unknown').split(',')[0].trim();
       const rate = checkRateLimit(ip);
       if (!rate.allowed) {
         return sendJson(res, 429, {
@@ -572,6 +616,7 @@ function createAppHandler(options = {}) {
           passwordHash,
           updatedAt: new Date().toISOString()
         };
+        memoryAdmin = updatedAdmin;
         writeJsonAtomic(ADMIN_FILE, updatedAdmin);
 
         const refreshedToken = signSessionToken(updatedAdmin, true);
@@ -600,7 +645,7 @@ function createAppHandler(options = {}) {
           channel: String(body.channel || 'web').slice(0, 24),
           createdAt: new Date().toISOString()
         };
-        let quotes = [];
+        let quotes = Array.isArray(memoryQuotes) ? [...memoryQuotes] : [];
         if (fs.existsSync(QUOTES_FILE)) {
           try {
             const parsed = JSON.parse(fs.readFileSync(QUOTES_FILE, 'utf8'));
@@ -609,6 +654,7 @@ function createAppHandler(options = {}) {
         }
         quotes.push(entry);
         if (quotes.length > 500) quotes = quotes.slice(-500);
+        memoryQuotes = quotes;
         writeJsonAtomic(QUOTES_FILE, quotes);
         return sendJson(res, 201, { ok: true, id: entry.id });
       } catch (err) {
@@ -619,7 +665,7 @@ function createAppHandler(options = {}) {
     if (pathname === '/api/quotes' && method === 'GET') {
       const auth = getAuthenticatedAdmin(req);
       if (!auth) return sendJson(res, 401, { error: 'Sessão expirada ou não autenticada.' });
-      let quotes = [];
+      let quotes = Array.isArray(memoryQuotes) ? memoryQuotes : [];
       if (fs.existsSync(QUOTES_FILE)) {
         try {
           const parsed = JSON.parse(fs.readFileSync(QUOTES_FILE, 'utf8'));
@@ -653,7 +699,6 @@ function createAppHandler(options = {}) {
       reqPath = '/admin.html';
     }
 
-    // Bloqueia qualquer caminho fora da lista branca (server.js, LEIA-ME_IT.md, data/, .htaccess, etc.)
     if (!isAllowedPublicPath(reqPath)) {
       return sendNotFoundHtml(res, method);
     }
@@ -751,13 +796,21 @@ function startServer(portToTry) {
   return server;
 }
 
+let lazyDefaultHandler = null;
+function defaultHandler(req, res) {
+  if (!lazyDefaultHandler) {
+    lazyDefaultHandler = createAppHandler();
+  }
+  return lazyDefaultHandler(req, res);
+}
+
 if (require.main === module) {
   startServer(DEFAULT_PORT);
 }
 
-module.exports = {
-  createAppHandler,
-  startServer,
-  hashPassword,
-  verifyPassword
-};
+defaultHandler.createAppHandler = createAppHandler;
+defaultHandler.startServer = startServer;
+defaultHandler.hashPassword = hashPassword;
+defaultHandler.verifyPassword = verifyPassword;
+
+module.exports = defaultHandler;
