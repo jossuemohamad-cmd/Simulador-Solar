@@ -212,6 +212,22 @@ function resolveWritableDataDir(customDir, rootDir) {
   return path.join(rootDir, 'data');
 }
 
+function sanitizeProductImage(rawImage, fallback) {
+  if (!rawImage) return fallback || '';
+  const clean = String(rawImage).trim();
+  if (!clean) return fallback || '';
+  if (clean.startsWith('data:image/') && !/[<>"']/.test(clean)) {
+    return clean;
+  }
+  if (/^img\/products\/[a-zA-Z0-9._-]+\.(svg|png|jpe?g|webp)$/i.test(clean)) {
+    return clean;
+  }
+  if (/^https?:\/\/[^\s"'<>]+$/i.test(clean)) {
+    return clean;
+  }
+  return fallback || 'img/products/panel-jinko.svg';
+}
+
 function sanitizeProductList(category, list) {
   if (!Array.isArray(list) || list.length === 0) return null;
   const cleanList = [];
@@ -231,7 +247,7 @@ function sanitizeProductList(category, list) {
       brand,
       price,
       extra,
-      image: sanitizeImageUrl(raw.image)
+      image: sanitizeProductImage(raw.image)
     };
 
     if (category === 'panels') {

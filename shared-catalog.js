@@ -218,15 +218,19 @@
   }
 
   function sanitizeImageUrl(url, fallback) {
-    const clean = String(url || '').trim();
+    if (!url) return fallback || '';
+    const clean = String(url).trim();
     if (!clean) return fallback || '';
+    // Suporte robusto para fotos enviadas via upload (data:image/...)
+    if (clean.startsWith('data:image/') && !/[<>"']/.test(clean)) {
+      return clean;
+    }
+    // Caminhos relativos de assets locais
     if (/^img\/products\/[a-zA-Z0-9._-]+\.(svg|png|jpe?g|webp)$/i.test(clean)) {
       return clean;
     }
+    // URLs HTTP/HTTPS externas
     if (/^https?:\/\/[^\s"'<>]+$/i.test(clean)) {
-      return clean;
-    }
-    if (/^data:image\/[a-zA-Z0-9.+_-]+;base64,/i.test(clean) && !/[<>"'\r\n]/.test(clean)) {
       return clean;
     }
     return fallback || 'img/products/panel-jinko.svg';

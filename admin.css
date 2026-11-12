@@ -1547,3 +1547,209 @@ input:focus, select:focus {
     grid-template-columns: 1fr;
   }
 }
+
+/* ========================================================
+   TOAST NOTIFICATIONS (Substituto profissional de window.alert)
+   ======================================================== */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: 440px;
+  width: calc(100vw - 32px);
+}
+
+.toast-card {
+  pointer-events: auto;
+  background: #ffffff;
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+  animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.toast-card.toast-hiding {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toast-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toast-card.toast-success {
+  border-left: 4px solid #10b981;
+}
+.toast-card.toast-success .toast-icon-wrap {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.toast-card.toast-error {
+  border-left: 4px solid #ef4444;
+}
+.toast-card.toast-error .toast-icon-wrap {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.toast-card.toast-warning {
+  border-left: 4px solid var(--orange);
+}
+.toast-card.toast-warning .toast-icon-wrap {
+  background: var(--orange-light);
+  color: var(--orange);
+}
+
+.toast-card.toast-info {
+  border-left: 4px solid #3b82f6;
+}
+.toast-card.toast-info .toast-icon-wrap {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.toast-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.toast-message {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.toast-close-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.toast-close-btn:hover {
+  background: #f1f5f9;
+  color: var(--ink);
+}
+
+/* ========================================================
+   MODAL DE CONFIRMAÇÃO (Substituto de window.confirm)
+   ======================================================== */
+.confirm-modal-backdrop {
+  z-index: 9998;
+}
+
+.confirm-modal-card {
+  max-width: 440px;
+  padding: 24px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.25);
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.confirm-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.confirm-modal-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--orange-light);
+  color: var(--orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.confirm-modal-icon-badge.danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.confirm-modal-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 6px 0;
+}
+
+.confirm-modal-message {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-danger-confirm {
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btn-danger-confirm:hover {
+  background: #b91c1c;
+}

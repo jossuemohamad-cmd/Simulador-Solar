@@ -30,6 +30,130 @@ const $ = (id) => document.getElementById(id);
 const money = (n) => new Intl.NumberFormat('pt-MZ', { maximumFractionDigits: 0 }).format(n) + ' MT';
 
 /**
+ * Exibe notificação moderna e elegante (Toast) no canto superior direito
+ * Substituto profissional para o window.alert() nativo do navegador
+ */
+function showToast(message, type = 'info', durationMs = 4000) {
+  const container = $('toast-container');
+  if (!container) {
+    console.log(`[${type.toUpperCase()}] ${message}`);
+    return;
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `toast-card toast-${type}`;
+  toast.setAttribute('role', 'alert');
+
+  let iconSvg = '';
+  let defaultTitle = '';
+  if (type === 'success') {
+    defaultTitle = 'Sucesso';
+    iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+  } else if (type === 'error') {
+    defaultTitle = 'Atenção / Erro';
+    iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+  } else if (type === 'warning') {
+    defaultTitle = 'Aviso';
+    iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+  } else {
+    defaultTitle = 'Informação';
+    iconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+  }
+
+  const cleanMsg = String(message || '').replace(/^[✓✔]\s*/, '');
+
+  toast.innerHTML = `
+    <div class="toast-icon-wrap">${iconSvg}</div>
+    <div class="toast-content">
+      <div class="toast-title">${defaultTitle}</div>
+      <div class="toast-message">${escapeHtml(cleanMsg)}</div>
+    </div>
+    <button type="button" class="toast-close-btn" aria-label="Fechar">&times;</button>
+  `;
+
+  const closeToast = () => {
+    toast.classList.add('toast-hiding');
+    setTimeout(() => {
+      if (toast.parentElement) toast.parentElement.removeChild(toast);
+    }, 250);
+  };
+
+  const closeBtn = toast.querySelector('.toast-close-btn');
+  if (closeBtn) closeBtn.addEventListener('click', closeToast);
+
+  container.appendChild(toast);
+
+  if (durationMs > 0) {
+    setTimeout(closeToast, durationMs);
+  }
+}
+window.showToast = showToast;
+
+/**
+ * Exibe diálogo de confirmação moderno e executivo
+ * Substituto profissional para o window.confirm() nativo do navegador
+ * @returns {Promise<boolean>}
+ */
+function showConfirmDialog(options = {}) {
+  return new Promise((resolve) => {
+    const modal = $('confirm-modal');
+    if (!modal) {
+      const ok = window.confirm(options.message || 'Confirmar ação?');
+      resolve(ok);
+      return;
+    }
+
+    const titleEl = $('confirm-modal-title');
+    const msgEl = $('confirm-modal-message');
+    const iconEl = $('confirm-modal-icon');
+    const btnCancel = $('confirm-modal-cancel');
+    const btnOk = $('confirm-modal-ok');
+
+    const title = options.title || 'Confirmar Ação';
+    const message = options.message || 'Pretende continuar com esta ação?';
+    const confirmText = options.confirmText || 'Confirmar';
+    const cancelText = options.cancelText || 'Cancelar';
+    const isDanger = Boolean(options.isDanger);
+
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
+    if (btnOk) {
+      btnOk.textContent = confirmText;
+      btnOk.className = isDanger ? 'btn-danger-confirm' : 'btn-primary';
+    }
+    if (btnCancel) btnCancel.textContent = cancelText;
+
+    if (iconEl) {
+      iconEl.className = 'confirm-modal-icon-badge' + (isDanger ? ' danger' : '');
+      iconEl.innerHTML = isDanger
+        ? '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
+        : '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    }
+
+    modal.hidden = false;
+
+    const cleanup = (result) => {
+      modal.hidden = true;
+      if (btnOk) btnOk.removeEventListener('click', onOk);
+      if (btnCancel) btnCancel.removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onBackdrop);
+      resolve(result);
+    };
+
+    const onOk = () => cleanup(true);
+    const onCancel = () => cleanup(false);
+    const onBackdrop = (e) => {
+      if (e.target === modal) cleanup(false);
+    };
+
+    if (btnOk) btnOk.addEventListener('click', onOk, { once: true });
+    if (btnCancel) btnCancel.addEventListener('click', onCancel, { once: true });
+    modal.addEventListener('click', onBackdrop);
+  });
+}
+window.showConfirmDialog = showConfirmDialog;
+
+/**
  * Calcula SHA-256 em hex (Web Crypto com fallback puro JS para contextos HTTP não-HTTPS)
  */
 async function sha256Hex(text) {
@@ -193,18 +317,32 @@ async function saveProducts() {
         body: JSON.stringify(adminProducts)
       });
       if (res.status === 401) {
-        alert('A sua sessão administrativa expirou. Inicie sessão novamente.');
+        showToast('A sua sessão administrativa expirou. Inicie sessão novamente.', 'error');
         await checkAuth();
         return false;
       }
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         updateSyncIndicator('error', 'Erro ao sincronizar');
-        alert(errData.error || 'Erro ao guardar alterações no servidor.');
+        showToast(errData.error || 'Erro ao guardar alterações no servidor.', 'error');
         return false;
       }
       const data = await res.json();
       if (data && data.catalog) {
+        // Preserva fotos locais em Base64 para prevenir que qualquer resposta
+        // com cache antigo do servidor desfaça a foto do produto
+        ['panels', 'inverters', 'batteries'].forEach((cat) => {
+          if (Array.isArray(data.catalog[cat]) && Array.isArray(adminProducts[cat])) {
+            data.catalog[cat].forEach((srvItem) => {
+              const localItem = adminProducts[cat].find((x) => x.id === srvItem.id);
+              if (localItem && localItem.image && localItem.image.startsWith('data:image/')) {
+                if (!srvItem.image || !srvItem.image.startsWith('data:image/')) {
+                  srvItem.image = localItem.image;
+                }
+              }
+            });
+          }
+        });
         adminProducts = data.catalog;
         saveLocalProductsData(adminProducts);
       }
@@ -212,7 +350,7 @@ async function saveProducts() {
       return true;
     } catch (err) {
       updateSyncIndicator('error', 'Sem ligação ao servidor');
-      alert('Não foi possível sincronizar com o servidor: ' + err.message);
+      showToast('Não foi possível sincronizar com o servidor: ' + err.message, 'warning');
       return false;
     }
   }
@@ -398,7 +536,14 @@ async function handleLogin(event) {
 window.handleLogin = handleLogin;
 
 async function handleLogout() {
-  if (!confirm('Deseja realmente terminar a sua sessão no Portal de Administração?')) {
+  const confirmed = await showConfirmDialog({
+    title: 'Terminar Sessão',
+    message: 'Deseja realmente terminar a sua sessão no Portal de Administração LECASU?',
+    confirmText: 'Terminar Sessão',
+    cancelText: 'Continuar no Painel',
+    isDanger: true
+  });
+  if (!confirmed) {
     return;
   }
   if (isBackendAvailable) {
@@ -411,6 +556,7 @@ async function handleLogout() {
   if ($('login-password')) $('login-password').value = '';
   if ($('login-error-alert')) $('login-error-alert').hidden = true;
   await checkAuth();
+  showToast('Sessão terminada com sucesso.', 'info');
 }
 window.handleLogout = handleLogout;
 
@@ -697,13 +843,14 @@ function renderTable() {
 
     const tdName = document.createElement('td');
     const brandBadge = item.brand ? `<span class="badge-brand">${escapeHtml(item.brand)}</span>` : '';
-    const imgSrc = sanitizeImageUrl(item.image || getProductImage(activeCategory, item));
+    const defaultFallback = getProductImage(activeCategory, item);
+    const imgSrc = sanitizeImageUrl(item.image, defaultFallback);
     const safeName = escapeHtml(item.name);
     const safeId = escapeHtml(item.id);
 
     tdName.innerHTML = `
       <div class="prod-table-item">
-        <img src="${imgSrc}" alt="${safeName}" class="prod-thumb-img" onerror="this.onerror=null;this.src='img/products/panel-jinko.svg'">
+        <img src="${imgSrc}" alt="${safeName}" class="prod-thumb-img" onerror="this.onerror=null;this.src='${defaultFallback}'">
         <div style="flex: 1; min-width: 0;">
           <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 2px;">
             <span class="prod-name-title">${safeName}</span>
@@ -904,7 +1051,7 @@ window.handleProductImageFileSelect = handleProductImageFileSelect;
 
 function processProductImageFile(file) {
   if (!file || (!file.type.startsWith('image/') && !file.name.toLowerCase().endsWith('.svg'))) {
-    alert('Por favor, selecione um ficheiro de imagem válido (PNG, JPG, JPEG, WEBP ou SVG).');
+    showToast('Por favor, selecione um ficheiro de imagem válido (PNG, JPG, JPEG, WEBP ou SVG).', 'warning');
     return;
   }
 
@@ -929,19 +1076,19 @@ function processProductImageFile(file) {
       restoreSaveBtn();
       const svgText = String(e.target.result || '');
       if (!svgText.includes('<svg')) {
-        alert('O ficheiro SVG seleccionado parece inválido.');
+        showToast('O ficheiro SVG seleccionado parece inválido.', 'error');
         return;
       }
       try {
         const base64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgText)));
         applyUploadedProductImage(base64, file.name, file.size);
       } catch (err) {
-        alert('Erro ao processar ficheiro SVG: ' + err.message);
+        showToast('Erro ao processar ficheiro SVG: ' + err.message, 'error');
       }
     };
     reader.onerror = () => {
       restoreSaveBtn();
-      alert('Erro ao ler o ficheiro SVG.');
+      showToast('Erro ao ler o ficheiro SVG.', 'error');
     };
     reader.readAsText(file);
     return;
@@ -979,23 +1126,23 @@ function processProductImageFile(file) {
       try {
         dataUrl = canvas.toDataURL('image/webp', 0.88);
         if (!dataUrl || !dataUrl.startsWith('data:image/webp')) {
-          dataUrl = canvas.toDataURL('image/png');
+          dataUrl = canvas.toDataURL('image/jpeg', 0.88);
         }
       } catch {
-        dataUrl = canvas.toDataURL('image/png');
+        dataUrl = canvas.toDataURL('image/jpeg', 0.88);
       }
 
       applyUploadedProductImage(dataUrl, file.name, Math.round(dataUrl.length * 0.75));
     };
     img.onerror = () => {
       restoreSaveBtn();
-      alert('Não foi possível ler o ficheiro de imagem selecionado.');
+      showToast('Não foi possível ler o ficheiro de imagem selecionado.', 'error');
     };
     img.src = e.target.result;
   };
   reader.onerror = () => {
     restoreSaveBtn();
-    alert('Erro ao carregar o ficheiro do computador.');
+    showToast('Erro ao carregar o ficheiro do computador.', 'error');
   };
   reader.readAsDataURL(file);
 }
@@ -1095,6 +1242,11 @@ function updateModalImagePreview(url) {
 window.updateModalImagePreview = updateModalImagePreview;
 
 function onBrandSelectChange(brandValue) {
+  // Se o utilizador já carregou uma foto personalizada, NÃO sobrescreve com o SVG padrão da marca
+  if (currentUploadedImageDataUrl) return;
+  const currentImg = $('form-prod-image') ? $('form-prod-image').value.trim() : '';
+  if (currentImg && currentImg.startsWith('data:image/')) return;
+
   const cat = ($('form-prod-category') && $('form-prod-category').value) || activeCategory;
   const brand = (brandValue || '').toLowerCase();
   let defaultImg = '';
@@ -1231,7 +1383,7 @@ async function handleSaveProduct(event) {
   const image = sanitizeImageUrl(rawImg, getProductImage(category, { name, brand, voltageType }));
 
   if (!name || cap <= 0 || price <= 0) {
-    alert('Por favor, preencha os campos obrigatórios com valores válidos.');
+    showToast('Por favor, preencha os campos obrigatórios com valores válidos.', 'warning');
     return;
   }
 
@@ -1299,7 +1451,7 @@ async function handleSaveProduct(event) {
       renderSubFilters();
       renderTable();
     }
-    alert('✓ Equipamento e imagem guardados com sucesso no catálogo!');
+    showToast('Equipamento e imagem guardados com sucesso no catálogo!', 'success');
   } else {
     adminProducts = snapshot;
     saveLocalProductsData(adminProducts);
@@ -1310,11 +1462,18 @@ window.handleSaveProduct = handleSaveProduct;
 async function handleDeleteProduct(category, productId, productName) {
   const list = adminProducts[category];
   if (!list || list.length <= 1) {
-    alert('Deve existir pelo menos um equipamento disponível nesta categoria para permitir os cálculos do simulador.');
+    showToast('Deve existir pelo menos um equipamento disponível nesta categoria para permitir os cálculos do simulador.', 'warning');
     return;
   }
 
-  if (confirm(`Tem a certeza de que pretende apagar o equipamento:\n"${productName}"?`)) {
+  const confirmed = await showConfirmDialog({
+    title: 'Apagar Equipamento',
+    message: `Tem a certeza de que pretende apagar o equipamento:\n"${productName}"?`,
+    confirmText: 'Apagar Equipamento',
+    isDanger: true
+  });
+
+  if (confirmed) {
     const snapshot = JSON.parse(JSON.stringify(adminProducts));
     adminProducts[category] = list.filter((x) => x.id !== productId);
     const ok = await saveProducts();
@@ -1324,6 +1483,7 @@ async function handleDeleteProduct(category, productId, productName) {
         renderSubFilters();
         renderTable();
       }
+      showToast('Equipamento removido com sucesso.', 'info');
     } else {
       adminProducts = snapshot;
       saveLocalProductsData(adminProducts);
@@ -1364,7 +1524,12 @@ function importCatalogJson(event) {
         Array.isArray(parsed.inverters) && parsed.inverters.length > 0 &&
         Array.isArray(parsed.batteries) && parsed.batteries.length > 0
       ) {
-        if (confirm(`Pretende substituir o catálogo actual por este ficheiro?\n\nEquipamentos a importar:\n• ${parsed.panels.length} Painéis\n• ${parsed.inverters.length} Inversores\n• ${parsed.batteries.length} Baterias`)) {
+        const confirmed = await showConfirmDialog({
+          title: 'Importar Catálogo',
+          message: `Pretende substituir o catálogo actual por este ficheiro?\n\nEquipamentos a importar:\n• ${parsed.panels.length} Painéis\n• ${parsed.inverters.length} Inversores\n• ${parsed.batteries.length} Baterias`,
+          confirmText: 'Importar Ficheiro'
+        });
+        if (confirmed) {
           ensureProductImages(parsed);
           adminProducts = parsed;
           const ok = await saveProducts();
@@ -1374,14 +1539,14 @@ function importCatalogJson(event) {
               renderSubFilters();
               renderTable();
             }
-            alert('✓ Catálogo importado com sucesso!');
+            showToast('Catálogo importado com sucesso!', 'success');
           }
         }
       } else {
-        alert('O ficheiro JSON seleccionado não possui a estrutura correcta ou contém categorias vazias.');
+        showToast('O ficheiro JSON seleccionado não possui a estrutura correcta ou contém categorias vazias.', 'error');
       }
     } catch (err) {
-      alert('Erro ao processar ficheiro JSON: ' + err.message);
+      showToast('Erro ao processar ficheiro JSON: ' + err.message, 'error');
     }
     event.target.value = '';
   };
@@ -1390,7 +1555,13 @@ function importCatalogJson(event) {
 window.importCatalogJson = importCatalogJson;
 
 async function confirmResetDefaults() {
-  if (!confirm('Atenção: esta ação restaurará o catálogo oficial da LECASU com a lista completa de Inversores (Deye, LIVOLTEK, Sigenergy) e Baterias (LV e HV). Continuar?')) {
+  const confirmed = await showConfirmDialog({
+    title: 'Restaurar Catálogo Oficial',
+    message: 'Atenção: esta ação restaurará o catálogo oficial da LECASU com a lista completa de Inversores (Deye, LIVOLTEK, Sigenergy) e Baterias (LV e HV). Deseja continuar?',
+    confirmText: 'Restaurar Catálogo',
+    isDanger: true
+  });
+  if (!confirmed) {
     return;
   }
 
@@ -1406,13 +1577,13 @@ async function confirmResetDefaults() {
           renderSubFilters();
           renderTable();
         }
-        alert('✓ Catálogo oficial restaurado no servidor com sucesso!');
+        showToast('Catálogo oficial restaurado no servidor com sucesso!', 'success');
         return;
       }
-      alert(data.error || 'Erro ao restaurar catálogo no servidor.');
+      showToast(data.error || 'Erro ao restaurar catálogo no servidor.', 'error');
       return;
     } catch (err) {
-      alert('Erro de ligação ao servidor: ' + err.message);
+      showToast('Erro de ligação ao servidor: ' + err.message, 'error');
       return;
     }
   }
@@ -1424,7 +1595,7 @@ async function confirmResetDefaults() {
     renderSubFilters();
     renderTable();
   }
-  alert('✓ Catálogo oficial restaurado com sucesso!');
+  showToast('Catálogo oficial restaurado com sucesso!', 'success');
 }
 window.confirmResetDefaults = confirmResetDefaults;
 
