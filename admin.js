@@ -241,13 +241,7 @@ function getFallbackCredentials() {
 }
 
 function loadLocalProductsFallback() {
-  try {
-    localStorage.removeItem('lecasu_admin_products_v1');
-    localStorage.removeItem('lecasu_admin_products_v2');
-    localStorage.removeItem('lecasu_admin_products_v3');
-    localStorage.removeItem('lecasu_admin_products_v4');
-  } catch {}
-
+  let result = null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY_PRODUCTS);
     if (raw) {
@@ -258,23 +252,44 @@ function loadLocalProductsFallback() {
         Array.isArray(parsed.batteries) && parsed.batteries.length > 0
       ) {
         CatalogLib.stripLegacyObsoleteProducts(parsed);
-        saveLocalProductsData(parsed);
-        return parsed;
+        result = parsed;
       }
     }
   } catch (e) {
     console.warn('Erro ao carregar produtos locais:', e);
   }
 
-  const cloned = CatalogLib.cloneDefaults();
-  saveLocalProductsData(cloned);
-  return cloned;
+  if (!result) {
+    result = CatalogLib.cloneDefaults();
+  }
+
+  // Migra e preserva fotos carregadas via upload antes de limpar chaves antigas
+  if (typeof CatalogLib.migrateAndApplyCustomImages === 'function') {
+    CatalogLib.migrateAndApplyCustomImages(result, localStorage);
+  }
+
+  try {
+    localStorage.removeItem('lecasu_admin_products_v1');
+    localStorage.removeItem('lecasu_admin_products_v2');
+    localStorage.removeItem('lecasu_admin_products_v3');
+    localStorage.removeItem('lecasu_admin_products_v4');
+  } catch {}
+
+  saveLocalProductsData(result);
+  return result;
 }
 
 function saveLocalProductsData(data) {
   try {
+    if (typeof CatalogLib.migrateAndApplyCustomImages === 'function') {
+      CatalogLib.migrateAndApplyCustomImages(data, localStorage);
+    }
     localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(data));
-  } catch {}
+  } catch (err) {
+    if (err && (err.name === 'QuotaExceededError' || err.code === 22)) {
+      showToast('Limite de cache local do navegador atingido. Configure o MySQL para guardar imagens ilimitadas.', 'warning');
+    }
+  }
 }
 
 function updateSyncIndicator(mode, labelText) {
@@ -296,18 +311,22 @@ async function fetchCatalogFromServer() {
         ensureProductImages(data);
 
         // IMPORTANTE: preservar fotos Base64 que estão guardadas localmente (localStorage)
-        // O servidor pode não ter a foto (imagens grandes não persistem no JSON do servidor)
         // Nunca deixar que a resposta do servidor apague uma foto real carregada pelo admin
         const local = adminProducts;
         ['panels', 'inverters', 'batteries'].forEach((cat) => {
           if (!Array.isArray(data[cat]) || !Array.isArray(local[cat])) return;
           data[cat].forEach((srvItem) => {
+            if (srvItem.image && srvItem.image.startsWith('data:image/')) return;
             const localItem = local[cat].find((x) => x.id === srvItem.id);
             if (localItem && localItem.image && localItem.image.startsWith('data:image/')) {
               srvItem.image = localItem.image;
             }
           });
         });
+
+        if (typeof CatalogLib.migrateAndApplyCustomImages === 'function') {
+          CatalogLib.migrateAndApplyCustomImages(data, localStorage);
+        }
 
         adminProducts = data;
         saveLocalProductsData(data);
@@ -1123,7 +1142,7 @@ function processProductImageFile(file) {
     const img = new Image();
     img.onload = () => {
       restoreSaveBtn();
-      const maxDim = 480;
+      const maxDim = 360;
       let width = img.naturalWidth || img.width;
       let height = img.naturalHeight || img.height;
 
@@ -1147,12 +1166,12 @@ function processProductImageFile(file) {
 
       let dataUrl;
       try {
-        dataUrl = canvas.toDataURL('image/webp', 0.88);
+        dataUrl = canvas.toDataURL('image/webp', 0.80);
         if (!dataUrl || !dataUrl.startsWith('data:image/webp')) {
-          dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          dataUrl = canvas.toDataURL('image/jpeg', 0.80);
         }
       } catch {
-        dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+        dataUrl = canvas.toDataURL('image/jpeg', 0.80);
       }
 
       applyUploadedProductImage(dataUrl, file.name, Math.round(dataUrl.length * 0.75));

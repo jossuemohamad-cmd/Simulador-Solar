@@ -12,6 +12,7 @@
   }
 }(typeof self !== 'undefined' ? self : this, function () {
   const STORAGE_KEY_PRODUCTS = 'lecasu_admin_products_v5';
+  const STORAGE_KEY_CUSTOM_IMAGES = 'lecasu_custom_images_v1';
 
   // Apenas IDs muito antigos (v1) que foram descontinuados há muito tempo
   const OBSOLETE_PRODUCT_IDS = [
@@ -629,8 +630,68 @@
     return parsed;
   }
 
+  /**
+   * Extrai e preserva imagens personalizadas (Base64 data:image/) de versões antigas do localStorage
+   * e do mapa dedicado lecasu_custom_images_v1, aplicando-as ao catálogo actual.
+   */
+  function migrateAndApplyCustomImages(catalog, storageObj) {
+    if (!catalog || !storageObj) return catalog;
+    let customMap = {};
+    try {
+      const rawMap = storageObj.getItem(STORAGE_KEY_CUSTOM_IMAGES);
+      if (rawMap) {
+        const parsedMap = JSON.parse(rawMap);
+        if (parsedMap && typeof parsedMap === 'object') customMap = parsedMap;
+      }
+    } catch {}
+
+    const legacyKeys = [
+      'lecasu_admin_products_v1',
+      'lecasu_admin_products_v2',
+      'lecasu_admin_products_v3',
+      'lecasu_admin_products_v4',
+      STORAGE_KEY_PRODUCTS
+    ];
+
+    legacyKeys.forEach((key) => {
+      try {
+        const raw = storageObj.getItem(key);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        ['panels', 'inverters', 'batteries'].forEach((cat) => {
+          if (!Array.isArray(parsed[cat])) return;
+          parsed[cat].forEach((item) => {
+            if (item && item.id && item.image && String(item.image).startsWith('data:image/')) {
+              customMap[item.id] = item.image;
+            }
+          });
+        });
+      } catch {}
+    });
+
+    // Atualiza o mapa persistente de imagens personalizadas
+    ['panels', 'inverters', 'batteries'].forEach((cat) => {
+      if (!Array.isArray(catalog[cat])) return;
+      catalog[cat].forEach((item) => {
+        if (!item || !item.id) return;
+        if (item.image && String(item.image).startsWith('data:image/')) {
+          customMap[item.id] = item.image;
+        } else if (customMap[item.id]) {
+          item.image = customMap[item.id];
+        }
+      });
+    });
+
+    try {
+      storageObj.setItem(STORAGE_KEY_CUSTOM_IMAGES, JSON.stringify(customMap));
+    } catch {}
+
+    return catalog;
+  }
+
   return {
     STORAGE_KEY_PRODUCTS,
+    STORAGE_KEY_CUSTOM_IMAGES,
     OBSOLETE_PRODUCT_IDS,
     DEFAULT_PRODUCTS,
     getProductImage,
@@ -638,6 +699,7 @@
     cloneDefaults,
     sanitizeImageUrl,
     escapeHtml,
-    stripLegacyObsoleteProducts
+    stripLegacyObsoleteProducts,
+    migrateAndApplyCustomImages
   };
 }));

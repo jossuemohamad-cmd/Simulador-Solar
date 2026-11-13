@@ -63,13 +63,7 @@ const sanitizeImageUrl = CatalogLib.sanitizeImageUrl;
 const escapeHtml = CatalogLib.escapeHtml;
 
 function loadAdminProducts() {
-  try {
-    localStorage.removeItem('lecasu_admin_products_v1');
-    localStorage.removeItem('lecasu_admin_products_v2');
-    localStorage.removeItem('lecasu_admin_products_v3');
-    localStorage.removeItem('lecasu_admin_products_v4');
-  } catch {}
-
+  let result = null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY_PRODUCTS);
     if (raw) {
@@ -80,20 +74,37 @@ function loadAdminProducts() {
         Array.isArray(parsed.batteries) && parsed.batteries.length > 0
       ) {
         CatalogLib.stripLegacyObsoleteProducts(parsed);
-        saveAdminProductsData(parsed);
-        return parsed;
+        result = parsed;
       }
     }
   } catch (e) {
     console.warn('Erro ao carregar catálogo local:', e);
   }
-  const cloned = CatalogLib.cloneDefaults();
-  saveAdminProductsData(cloned);
-  return cloned;
+
+  if (!result) {
+    result = CatalogLib.cloneDefaults();
+  }
+
+  if (typeof CatalogLib.migrateAndApplyCustomImages === 'function') {
+    CatalogLib.migrateAndApplyCustomImages(result, localStorage);
+  }
+
+  try {
+    localStorage.removeItem('lecasu_admin_products_v1');
+    localStorage.removeItem('lecasu_admin_products_v2');
+    localStorage.removeItem('lecasu_admin_products_v3');
+    localStorage.removeItem('lecasu_admin_products_v4');
+  } catch {}
+
+  saveAdminProductsData(result);
+  return result;
 }
 
 function saveAdminProductsData(data) {
   try {
+    if (typeof CatalogLib.migrateAndApplyCustomImages === 'function') {
+      CatalogLib.migrateAndApplyCustomImages(data, localStorage);
+    }
     localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(data));
   } catch {}
 }
@@ -121,12 +132,17 @@ async function syncCatalogFromServer() {
         ['panels', 'inverters', 'batteries'].forEach((cat) => {
           if (!Array.isArray(data[cat]) || !Array.isArray(local[cat])) return;
           data[cat].forEach((srvItem) => {
+            if (srvItem.image && srvItem.image.startsWith('data:image/')) return;
             const localItem = local[cat].find((x) => x.id === srvItem.id);
             if (localItem && localItem.image && localItem.image.startsWith('data:image/')) {
               srvItem.image = localItem.image;
             }
           });
         });
+
+        if (typeof CatalogLib.migrateAndApplyCustomImages === 'function') {
+          CatalogLib.migrateAndApplyCustomImages(data, localStorage);
+        }
 
         adminProducts = data;
         saveAdminProductsData(data);
