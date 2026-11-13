@@ -65,6 +65,13 @@ const escapeHtml = CatalogLib.escapeHtml;
 function loadAdminProducts() {
   let result = null;
   try {
+    localStorage.removeItem('lecasu_admin_products_v1');
+    localStorage.removeItem('lecasu_admin_products_v2');
+    localStorage.removeItem('lecasu_admin_products_v3');
+    localStorage.removeItem('lecasu_admin_products_v4');
+  } catch {}
+
+  try {
     const raw = localStorage.getItem(STORAGE_KEY_PRODUCTS);
     if (raw) {
       const parsed = JSON.parse(raw);
@@ -74,12 +81,17 @@ function loadAdminProducts() {
         Array.isArray(parsed.batteries) && parsed.batteries.length > 0
       ) {
         CatalogLib.stripLegacyObsoleteProducts(parsed);
+        saveAdminProductsData(parsed);
+        return parsed;
         result = parsed;
       }
     }
   } catch (e) {
     console.warn('Erro ao carregar catálogo local:', e);
   }
+  const cloned = CatalogLib.cloneDefaults();
+  saveAdminProductsData(cloned);
+  return cloned;
 
   if (!result) {
     result = CatalogLib.cloneDefaults();

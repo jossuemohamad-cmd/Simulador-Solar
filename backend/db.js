@@ -438,3 +438,4 @@ module.exports = {
   insertQuote,
   getStatus
 };
+
