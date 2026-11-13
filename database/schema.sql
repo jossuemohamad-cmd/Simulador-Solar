@@ -4,11 +4,11 @@
 -- Credenciais Administrativas, Orçamentos e Metadados do Sistema.
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS `lecasu_solar`
+CREATE DATABASE IF NOT EXISTS `mwxntafa_simulador`
   DEFAULT CHARACTER SET utf8mb4
   DEFAULT COLLATE utf8mb4_unicode_ci;
 
-USE `lecasu_solar`;
+USE `mwxntafa_simulador`;
 
 -- 1. Tabela de Equipamentos (Painéis, Inversores, Baterias)
 CREATE TABLE IF NOT EXISTS `products` (

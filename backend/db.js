@@ -54,9 +54,12 @@ function getConnectionConfig() {
     };
   }
 
-  const host = (process.env.DB_HOST || '').trim();
-  const user = (process.env.DB_USER || '').trim();
-  const database = (process.env.DB_NAME || '').trim();
+  const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NOW_REGION);
+  const host = (process.env.DB_HOST || (isVercel ? '' : 'localhost')).trim();
+  const user = (process.env.DB_USER || 'mwxntafa_simulador').trim();
+  const database = (process.env.DB_NAME || 'mwxntafa_simulador').trim();
+  const password = process.env.DB_PASSWORD !== undefined ? process.env.DB_PASSWORD : 'Lecasu@2026';
+
   if (!host || !user || !database) {
     return null;
   }
@@ -65,7 +68,7 @@ function getConnectionConfig() {
     host,
     port: Number(process.env.DB_PORT) || 3306,
     user,
-    password: process.env.DB_PASSWORD || '',
+    password,
     database,
     waitForConnections: true,
     connectionLimit: 5,
@@ -418,6 +421,45 @@ async function insertQuote(entry) {
   }
 }
 
+/**
+ * Inicialização automática no arranque/deploy:
+ * Cria as tabelas (se não existirem) e semeia o catálogo e o utilizador admin se estiverem vazios.
+ */
+async function bootstrapDatabase(getInitialCatalogFn, getInitialAdminFn) {
+  if (!isConfigured()) return false;
+  const ready = await ensureSchema();
+  if (!ready) return false;
+
+  try {
+    const p = await getPool();
+    const [prodCountRows] = await p.query('SELECT COUNT(*) AS total FROM products');
+    const prodTotal = Number(prodCountRows && prodCountRows[0] && prodCountRows[0].total) || 0;
+    if (prodTotal === 0 && typeof getInitialCatalogFn === 'function') {
+      const initialCatalog = await getInitialCatalogFn();
+      if (initialCatalog) {
+        await saveCatalog(initialCatalog);
+        console.log('[MySQL] Tabela "products" semeada automaticamente.');
+      }
+    }
+
+    const [adminCountRows] = await p.query('SELECT COUNT(*) AS total FROM admin_users');
+    const adminTotal = Number(adminCountRows && adminCountRows[0] && adminCountRows[0].total) || 0;
+    if (adminTotal === 0 && typeof getInitialAdminFn === 'function') {
+      const initialAdmin = await getInitialAdminFn();
+      if (initialAdmin) {
+        await saveAdmin(initialAdmin);
+        console.log('[MySQL] Tabela "admin_users" semeada automaticamente.');
+      }
+    }
+
+    return true;
+  } catch (err) {
+    lastDbError = err.message;
+    console.warn('Aviso MySQL (bootstrapDatabase):', err.message);
+    return false;
+  }
+}
+
 function getStatus() {
   return {
     configured: isConfigured(),
@@ -430,6 +472,7 @@ function getStatus() {
 module.exports = {
   isConfigured,
   ensureSchema,
+  bootstrapDatabase,
   loadCatalog,
   saveCatalog,
   loadAdmin,

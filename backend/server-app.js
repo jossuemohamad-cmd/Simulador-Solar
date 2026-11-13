@@ -16,7 +16,7 @@ const {
   stripLegacyObsoleteProducts
 } = require('../shared-catalog.js');
 
-const DEFAULT_PORT = Number(process.env.PORT) || 5500;
+const DEFAULT_PORT = process.env.PORT || 5500;
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -862,6 +862,40 @@ function createAppHandler(options = {}) {
     });
   }
 
+  // Inicializa automaticamente as tabelas MySQL e dados iniciais no arranque/deploy
+  if (db.isConfigured()) {
+    db.bootstrapDatabase(
+      async () => {
+        const localFile = path.join(ROOT, 'data', 'catalog.json');
+        if (fs.existsSync(localFile)) {
+          try {
+            const parsed = JSON.parse(fs.readFileSync(localFile, 'utf8'));
+            if (parsed && Array.isArray(parsed.panels) && Array.isArray(parsed.inverters) && Array.isArray(parsed.batteries)) {
+              stripLegacyObsoleteProducts(parsed);
+              return parsed;
+            }
+          } catch {}
+        }
+        const def = cloneDefaults();
+        def.updatedAt = new Date().toISOString();
+        return def;
+      },
+      async () => {
+        const { salt, passwordHash } = hashPassword(INITIAL_PASS);
+        return {
+          username: INITIAL_USER,
+          alias: INITIAL_ALIAS,
+          name: 'Administrador LECASU',
+          salt,
+          passwordHash,
+          updatedAt: 'initial'
+        };
+      }
+    ).catch((err) => {
+      console.warn('Aviso ao inicializar MySQL no arranque:', err.message);
+    });
+  }
+
   return function requestHandler(req, res) {
     let rawPathname;
     try {
@@ -903,9 +937,10 @@ function startServer(portToTry) {
   const server = http.createServer(handler);
 
   server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      console.log(`Porta ${portToTry} ocupada. Tentando porta ${portToTry + 1}...`);
-      startServer(portToTry + 1);
+    const numericPort = Number(portToTry);
+    if (err.code === 'EADDRINUSE' && Number.isInteger(numericPort) && numericPort > 0) {
+      console.log(`Porta ${numericPort} ocupada. Tentando porta ${numericPort + 1}...`);
+      startServer(numericPort + 1);
     } else {
       console.error('Erro no servidor:', err);
     }
