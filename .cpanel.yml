@@ -1,0 +1,7 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/mwxntafa/public_html/simulador.lecasu.co.mz
+    - /bin/mkdir -p $DEPLOYPATH/tmp
+    - /bin/rsync -av --exclude='.git' --exclude='.htaccess' --exclude='.well-known' --exclude='cgi-bin' --exclude='tmp' --exclude='node_modules' --exclude='stderr.log' ./ $DEPLOYPATH/
+    - /bin/touch $DEPLOYPATH/tmp/restart.txt
