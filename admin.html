@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="icon-192.png">
 
-  <link rel="stylesheet" href="admin.css?v=20261113_05">
+  <link rel="stylesheet" href="admin.css?v=20261113_06">
 </head>
 <body>
 
@@ -212,20 +212,30 @@
               <label for="admin-category-select" class="filter-label">Categoria Principal</label>
               <div class="select-wrapper">
                 <select id="admin-category-select" onchange="switchCategory(this.value)">
-                  <option value="inverters">⚡ Inversores Híbridos & Controladores</option>
-                  <option value="panels">☀️ Painéis Fotovoltaicos (Módulos)</option>
-                  <option value="batteries">🔋 Baterias LiFePO4 & Armazenamento</option>
-                  <option value="settings">⚙️ Configurações & Backup do Sistema</option>
+                  <option value="inverters">Inversores Híbridos &amp; Controladores</option>
+                  <option value="panels">Painéis Solares (Módulos)</option>
+                  <option value="batteries">Baterias &amp; Armazenamento</option>
+                  <option value="settings">Configurações &amp; Backup do Sistema</option>
                 </select>
               </div>
             </div>
 
-            <!-- Dropdown de Subfiltros (Tensão / Marcas / Fases) -->
-            <div class="filter-dropdown-group" id="subfilter-field-wrapper">
-              <label for="admin-subfilter-select" class="filter-label">Filtro / Tensão / Fabricante</label>
+            <!-- Dropdown de Marca / Fabricante -->
+            <div class="filter-dropdown-group" id="brand-filter-wrapper">
+              <label for="admin-brand-select" class="filter-label">Marca / Fabricante</label>
               <div class="select-wrapper">
-                <select id="admin-subfilter-select" onchange="onSubFilterDropdownChange(this.value)">
-                  <option value="all">Todos os Equipamentos</option>
+                <select id="admin-brand-select" onchange="onBrandFilterChange(this.value)">
+                  <option value="all">Todas as Marcas</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Dropdown de Tensão Nominal -->
+            <div class="filter-dropdown-group" id="voltage-filter-wrapper">
+              <label for="admin-voltage-select" class="filter-label">Tensão Nominal</label>
+              <div class="select-wrapper">
+                <select id="admin-voltage-select" onchange="onVoltageFilterChange(this.value)">
+                  <option value="all">Todas as Tensões</option>
                 </select>
               </div>
             </div>
@@ -233,7 +243,7 @@
             <!-- Pesquisa de Texto -->
             <div class="table-search-box" id="table-search-container">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" id="admin-search-input" placeholder="Pesquisar por SKU, modelo, fabricante ou potência..." oninput="handleTableSearch(this.value)">
+              <input type="text" id="admin-search-input" placeholder="Pesquisar por código SKU, modelo, marca ou tensão..." oninput="handleTableSearch(this.value)">
             </div>
 
             <!-- Contador de Itens Activos -->
@@ -244,7 +254,7 @@
 
           </div>
 
-          <!-- Barra de Subfiltros Dinâmicos em Chips Rápidos -->
+          <!-- Barra de Subfiltros Dinâmicos por Categoria | Marca | Tensão -->
           <div id="admin-subfilters-bar" class="admin-subfilters-bar"></div>
         </section>
 
@@ -255,11 +265,11 @@
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th style="width: 28%;">Equipamento / Modelo</th>
-                    <th style="width: 18%;">Tensão & Fases</th>
-                    <th style="width: 14%;">Capacidade</th>
-                    <th style="width: 16%;">Preço Unitário (MZN)</th>
-                    <th style="width: 14%;">Detalhes Técnicos</th>
+                    <th style="width: 34%;">Equipamento / Modelo</th>
+                    <th style="width: 20%;">Categoria &amp; Marca</th>
+                    <th style="width: 16%;">Tensão Nominal</th>
+                    <th style="width: 10%;">Capacidade</th>
+                    <th style="width: 10%;">Preço Unitário (MZN)</th>
                     <th style="width: 10%; text-align: right;">Ações</th>
                   </tr>
                 </thead>
@@ -369,7 +379,9 @@
             <small id="modal-prod-sub" style="color: var(--muted); font-size: 11.5px;">Módulo Fotovoltaico</small>
           </div>
         </div>
-        <button type="button" class="btn-close" onclick="closeProductModal()" aria-label="Fechar">×</button>
+        <button type="button" class="btn-close" onclick="closeProductModal()" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
 
       <form id="product-form" onsubmit="handleSaveProduct(event)">
@@ -422,31 +434,27 @@
           <div class="form-grid-2" style="margin-top: 12px;">
             <div class="form-group">
               <label id="lbl-form-capacity" for="form-prod-capacity">Potência Nominal (Wp) <span class="req">*</span></label>
-              <input type="number" id="form-prod-capacity" placeholder="570" required min="0.1" step="any">
+              <input type="number" id="form-prod-capacity" placeholder="600" required min="0.1" step="any">
             </div>
 
             <div class="form-group">
               <label for="form-prod-price">Preço Unitário (MZN) <span class="req">*</span></label>
-              <input type="number" id="form-prod-price" placeholder="7500" required min="0" step="any">
+              <input type="number" id="form-prod-price" placeholder="8000" required min="0" step="any">
             </div>
           </div>
 
-          <div class="form-group" style="margin-top: 12px;">
-            <label id="lbl-form-extra" for="form-prod-extra">Detalhes Técnicos / Tecnologia</label>
-            <input type="text" id="form-prod-extra" placeholder="Ex.: Mono-PERC N-Type Tier 1" maxlength="70">
-            <small style="color: var(--muted); font-size: 11px; display: block; margin-top: 3px;">Esta informação é apresentada ao cliente ao seleccionar o modelo no sistema de dimensionamento.</small>
-          </div>
+          <input type="hidden" id="form-prod-extra" value="">
 
           <!-- Imagem Oficial do Equipamento (Upload do Computador) -->
           <div class="form-group" style="margin-top: 14px;">
             <label>Imagem do Equipamento (Upload)</label>
             <div class="image-upload-wrapper">
               <div class="modal-img-preview-box" id="img-preview-container" title="Prévia da Imagem">
-                <img id="form-img-preview" src="img/products/panel-jinko.svg" alt="Prévia" class="modal-thumb-img">
+                <img id="form-img-preview" src="img/products/panel-jinko.png" alt="Prévia" class="modal-thumb-img">
               </div>
 
               <div class="image-upload-dropzone" id="image-upload-dropzone">
-                <input type="file" id="form-prod-image-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display: none;" onchange="handleProductImageFileSelect(this)">
+                <input type="file" id="form-prod-image-file" accept="image/png,image/jpeg,image/webp" style="display: none;" onchange="handleProductImageFileSelect(this)">
                 
                 <div class="dropzone-actions">
                   <button type="button" class="btn-upload-picker" onclick="$('form-prod-image-file').click()">
@@ -457,9 +465,13 @@
                 </div>
 
                 <div class="upload-file-status" id="upload-file-status" hidden>
-                  <span class="upload-file-status-icon">✓</span>
+                  <span class="upload-file-status-icon">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>
                   <span class="upload-file-name" id="upload-file-name">Imagem carregada</span>
-                  <button type="button" class="btn-clear-upload" onclick="resetProductImageToDefault()" title="Remover e usar padrão">✕</button>
+                  <button type="button" class="btn-clear-upload" onclick="resetProductImageToDefault()" title="Remover e usar padrão" aria-label="Remover imagem">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
                 </div>
               </div>
             </div>
@@ -472,29 +484,30 @@
 
             <div id="adv-img-panel" style="display: none; margin-top: 8px;">
               <select id="form-prod-image-preset" onchange="onSelectImagePreset(this.value)" style="margin-bottom: 6px; width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line-strong); font-size: 12px; background: #ffffff;">
-                <option value="">-- Escolher Imagem Predefinida LECASU --</option>
-                <optgroup label="Painéis Solares (N-Type Bifaciais)">
-                  <option value="img/products/panel-jinko.svg">Jinko Solar (Tiger Neo Bifacial 600W-625W)</option>
-                  <option value="img/products/panel-canadian.svg">Canadian Solar (BiHiKu7 650W)</option>
-                  <option value="img/products/panel-ja.svg">JA Solar (DeepBlue 4.0 600W)</option>
-                  <option value="img/products/panel-longi.svg">LONGi Solar (Hi-MO X6 580W)</option>
+                <option value="">-- Escolher Imagem do Catálogo LECASU --</option>
+                <optgroup label="Painéis Solares">
+                  <option value="img/products/panel-jinko.png">Jinko Solar (Tiger Neo N-Type Bifacial 600W-625W)</option>
+                  <option value="img/products/panel-canadian.png">Canadian Solar (HiKu6 460W)</option>
                 </optgroup>
-                <optgroup label="Inversores Híbridos">
-                  <option value="img/products/inv-megatron-lv.svg">MEGATRON Híbrido LV (48V · 5kW / 12kW)</option>
-                  <option value="img/products/inv-deye-lv.svg">Deye Híbrido LV (48V · 1ph / 3ph)</option>
-                  <option value="img/products/inv-livoltek-lv.svg">LIVOLTEK Híbrido LV (Split-Phase / 3ph)</option>
-                  <option value="img/products/inv-sigen-hv.svg">Sigenergy SigenStor All-in-One HV (900V)</option>
+                <optgroup label="Inversores Híbridos e Controladores">
+                  <option value="img/products/inv-deye.png">Deye Híbrido (LV / HV)</option>
+                  <option value="img/products/inv-livoltek.png">LIVOLTEK Híbrido (Split-Phase / 3ph / HV)</option>
+                  <option value="img/products/inv-sigen.png">Sigenergy Sigen Energy Controller All-in-One HV-900</option>
+                  <option value="img/products/inv-megatron.png">MEGATRON Híbrido LV (48V)</option>
+                  <option value="img/products/inv-anern.png">ANERN Off-Grid LV (48V)</option>
                 </optgroup>
-                <optgroup label="Baterias LiFePO4 & BESS">
-                  <option value="img/products/bat-megatron-lv.svg">MEGATRON LiFePO4 (51.2V · 5.12kWh / 16kWh)</option>
-                  <option value="img/products/bat-deye-lv.svg">Deye LiFePO4 Mural 5.12 kWh (LV 51.2V)</option>
-                  <option value="img/products/bat-sigen-hv.svg">Sigenergy Sigen Battery HV Modular</option>
-                  <option value="img/products/bat-livoltek-bhf.svg">LIVOLTEK Torre Modular BHF HV (10-61 kWh)</option>
+                <optgroup label="Baterias e Armazenamento">
+                  <option value="img/products/bat-deye.jpg">Deye LiFePO4 5.12 kWh (51.2V-LV)</option>
+                  <option value="img/products/bat-sigen.webp">Sigenergy Sigen Battery (300-900V-HV)</option>
+                  <option value="img/products/bat-livoltek-bhf.webp">LIVOLTEK Torre Modular BHF HV (102.4V-614.4V)</option>
+                  <option value="img/products/bat-megatron.jpg">MEGATRON LiFePO4 (51.2V-LV)</option>
+                  <option value="img/products/bat-dyness.png">Dyness LiFePO4 5.12 kWh (LV)</option>
+                  <option value="img/products/bat-hz-gel.webp">HZ Solar Gel 12V 200Ah (LV)</option>
                 </optgroup>
               </select>
               <input type="text" id="form-prod-image" placeholder="Caminho relativo (ex.: img/products/...) ou URL externa" oninput="updateModalImagePreview(this.value)">
             </div>
-            <small style="color: var(--muted); font-size: 11px; display: block; margin-top: 4px;">Formatos aceites: PNG, JPG, WEBP e SVG. O sistema otimiza a imagem automaticamente para carregamento ultrarrápido.</small>
+            <small style="color: var(--muted); font-size: 11px; display: block; margin-top: 4px;">Formatos aceites: PNG, JPG e WEBP. O sistema otimiza a imagem automaticamente para carregamento rápido.</small>
           </div>
 
           <!-- Preview em Tempo Real de Como Aparecerá na Etapa 3 -->
@@ -528,7 +541,9 @@
             <small style="color: var(--muted); font-size: 11.5px;">Redefinição segura via Chave Mestra LECASU</small>
           </div>
         </div>
-        <button type="button" class="btn-close" onclick="closeRecoverPasswordModal()" aria-label="Fechar">×</button>
+        <button type="button" class="btn-close" onclick="closeRecoverPasswordModal()" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
 
       <form id="recover-pwd-form" onsubmit="handleRecoverPassword(event)">
@@ -587,7 +602,7 @@
   <!-- Recipiente Flutuante de Toasts / Notificações Elegantes -->
   <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="shared-catalog.js?v=20261113_05"></script>
-  <script src="admin.js?v=20261113_05"></script>
+  <script src="shared-catalog.js?v=20261113_06"></script>
+  <script src="admin.js?v=20261113_06"></script>
 </body>
 </html>

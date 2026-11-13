@@ -18,11 +18,16 @@ const getProductImage = CatalogLib.getProductImage;
 const ensureProductImages = CatalogLib.ensureProductImages;
 const sanitizeImageUrl = CatalogLib.sanitizeImageUrl;
 const escapeHtml = CatalogLib.escapeHtml;
+const inferNominalVoltage = CatalogLib.inferNominalVoltage;
+const inferCategoryGroup = CatalogLib.inferCategoryGroup;
 
 // Estado da Aplicação
 let adminProducts = loadLocalProductsFallback();
 let activeCategory = 'inverters';
 let activeSubFilter = 'all';
+let activeBrandFilter = 'all';
+let activeVoltageFilter = 'all';
+let activeGroupFilter = 'all';
 let filterQuery = '';
 let isBackendAvailable = null; // null = ainda não detetado; true/false após /api/auth/me
 let currentUploadedImageDataUrl = ''; // Armazena em memória o data:image/ da foto carregada no modal
@@ -769,6 +774,9 @@ function updateKpis() {
 function switchCategory(category) {
   activeCategory = category;
   activeSubFilter = 'all';
+  activeBrandFilter = 'all';
+  activeVoltageFilter = 'all';
+  activeGroupFilter = 'all';
 
   const categories = ['panels', 'inverters', 'batteries', 'settings'];
   categories.forEach((cat) => {
@@ -784,9 +792,9 @@ function switchCategory(category) {
   }
 
   const titles = {
-    panels: 'Painéis Fotovoltaicos (Módulos)',
+    panels: 'Painéis Solares (Módulos)',
     inverters: 'Inversores Híbridos & Controladores',
-    batteries: 'Baterias LiFePO4 & Armazenamento (BESS)',
+    batteries: 'Baterias & Armazenamento (BESS)',
     settings: 'Configurações de Acesso & Manutenção do Catálogo'
   };
 
@@ -803,7 +811,7 @@ function switchCategory(category) {
       pageDescEl.textContent = 'Altere a palavra-passe administrativa ou exporte/restaure o catálogo oficial da LECASU.';
     } else {
       pageTitleEl.textContent = 'Catálogo de Equipamentos Fotovoltaicos';
-      pageDescEl.textContent = 'Os equipamentos cadastrados aqui ficam automaticamente disponíveis para selecção e dimensionamento pelos clientes na Etapa 3 do portal de dimensionamento.';
+      pageDescEl.textContent = 'Os equipamentos cadastrados aqui ficam disponíveis automaticamente no portal de dimensionamento dos clientes.';
     }
   }
 
@@ -828,14 +836,16 @@ function switchCategory(category) {
   const settingsView = $('view-settings');
   const searchContainer = $('table-search-container');
   const subfiltersBar = $('admin-subfilters-bar');
-  const subfilterField = $('subfilter-field-wrapper');
+  const brandFilterWrapper = $('brand-filter-wrapper');
+  const voltageFilterWrapper = $('voltage-filter-wrapper');
 
   if (category === 'settings') {
     if (productsView) productsView.hidden = true;
     if (settingsView) settingsView.hidden = false;
     if (searchContainer) searchContainer.hidden = true;
     if (subfiltersBar) subfiltersBar.hidden = true;
-    if (subfilterField) subfilterField.hidden = true;
+    if (brandFilterWrapper) brandFilterWrapper.hidden = true;
+    if (voltageFilterWrapper) voltageFilterWrapper.hidden = true;
     if ($('current-category-count')) {
       $('current-category-count').textContent = 'Definições do Sistema';
     }
@@ -844,79 +854,144 @@ function switchCategory(category) {
     if (settingsView) settingsView.hidden = true;
     if (searchContainer) searchContainer.hidden = false;
     if (subfiltersBar) subfiltersBar.hidden = false;
-    if (subfilterField) subfilterField.hidden = false;
+    if (brandFilterWrapper) brandFilterWrapper.hidden = false;
+    if (voltageFilterWrapper) voltageFilterWrapper.hidden = false;
     renderSubFilters();
     renderTable();
   }
 }
 window.switchCategory = switchCategory;
 
+function getItemGroupLabel(category, item) {
+  return item.categoryGroup || inferCategoryGroup(category, item);
+}
+
+function getItemVoltageLabel(category, item) {
+  return item.nominalVoltage || inferNominalVoltage(category, item);
+}
+
+function getCategoryChipSvg(category) {
+  if (category === 'panels') {
+    return '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="4" x2="9" y2="16"/><line x1="15" y1="4" x2="15" y2="16"/><line x1="8" y1="20" x2="16" y2="20"/><line x1="12" y1="16" x2="12" y2="20"/></svg>';
+  }
+  if (category === 'inverters') {
+    return '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><polyline points="8 13 11 9 13 15 16 11"/></svg>';
+  }
+  return '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="17" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/><line x1="7" y1="10" x2="7" y2="14"/><line x1="11" y1="10" x2="11" y2="14"/></svg>';
+}
+
 function renderSubFilters() {
   if (activeCategory === 'settings') return;
 
   const bar = $('admin-subfilters-bar');
-  const select = $('admin-subfilter-select');
+  const brandSelect = $('admin-brand-select');
+  const voltageSelect = $('admin-voltage-select');
   if (bar) bar.replaceChildren();
 
   const items = adminProducts[activeCategory] || [];
-  let filters = [];
 
-  if (activeCategory === 'inverters') {
-    filters = [
-      { id: 'all', label: 'Todos os Inversores', count: items.length },
-      { id: 'lv', label: '🔹 Baixa Tensão (LV ~48V)', count: items.filter((i) => i.voltageType === 'LV').length },
-      { id: 'hv', label: '⚡ Alta Tensão (HV ~900V)', count: items.filter((i) => i.voltageType === 'HV').length },
-      { id: '1ph', label: 'Monofásico (1ph)', count: items.filter((i) => i.phase === '1ph').length },
-      { id: 'split', label: 'Split-Phase (Bifásico)', count: items.filter((i) => i.phase === 'split').length },
-      { id: '3ph', label: 'Trifásico (3ph)', count: items.filter((i) => i.phase === '3ph').length },
-      { id: 'brand_deye', label: 'Deye', count: items.filter((i) => (i.brand || '').toLowerCase().includes('deye') || (i.name || '').toLowerCase().includes('deye')).length },
-      { id: 'brand_megatron', label: 'MEGATRON', count: items.filter((i) => (i.brand || '').toLowerCase().includes('megatron') || (i.name || '').toLowerCase().includes('megatron')).length },
-      { id: 'brand_livoltek', label: 'LIVOLTEK', count: items.filter((i) => (i.brand || '').toLowerCase().includes('livoltek') || (i.name || '').toLowerCase().includes('livoltek')).length },
-      { id: 'brand_sigen', label: 'Sigenergy (SigenStor)', count: items.filter((i) => (i.brand || '').toLowerCase().includes('sigen') || (i.name || '').toLowerCase().includes('sigen')).length },
-      { id: 'brand_anern', label: 'ANERN', count: items.filter((i) => (i.brand || '').toLowerCase().includes('anern') || (i.name || '').toLowerCase().includes('anern')).length }
-    ];
-  } else if (activeCategory === 'batteries') {
-    filters = [
-      { id: 'all', label: 'Todas as Baterias', count: items.length },
-      { id: 'lv', label: '🔹 Baixa Tensão (LV)', count: items.filter((b) => b.voltageType === 'LV').length },
-      { id: 'hv', label: '⚡ Alta Tensão (HV)', count: items.filter((b) => b.voltageType === 'HV').length },
-      { id: 'brand_megatron', label: 'MEGATRON', count: items.filter((b) => (b.brand || '').toLowerCase().includes('megatron') || (b.name || '').toLowerCase().includes('megatron')).length },
-      { id: 'brand_deye', label: 'Deye', count: items.filter((b) => (b.brand || '').toLowerCase().includes('deye') || (b.name || '').toLowerCase().includes('deye')).length },
-      { id: 'brand_dyness', label: 'DYNESS', count: items.filter((b) => (b.brand || '').toLowerCase().includes('dyness') || (b.name || '').toLowerCase().includes('dyness')).length },
-      { id: 'brand_sigen', label: 'Sigenergy Sigen Battery', count: items.filter((b) => (b.brand || '').toLowerCase().includes('sigen') || (b.name || '').toLowerCase().includes('sigen')).length },
-      { id: 'brand_livoltek', label: 'LIVOLTEK BHF HV', count: items.filter((b) => (b.brand || '').toLowerCase().includes('livoltek') || (b.name || '').toLowerCase().includes('livoltek')).length },
-      { id: 'brand_hz', label: 'HZ Solar (Gel)', count: items.filter((b) => (b.brand || '').toLowerCase().includes('hz') || (b.name || '').toLowerCase().includes('hz')).length }
-    ];
-  } else if (activeCategory === 'panels') {
-    filters = [
-      { id: 'all', label: 'Todos os Painéis', count: items.length },
-      { id: 'bifacial', label: '✨ N-Type Bifaciais (Dual Glass)', count: items.filter((p) => p.panelType === 'bifacial_dual_glass' || (p.extra || '').toLowerCase().includes('bifacial') || (p.name || '').toLowerCase().includes('bifacial')).length },
-      { id: 'brand_jinko', label: 'Jinko Solar (600W–625W)', count: items.filter((p) => (p.name || '').toLowerCase().includes('jinko') || (p.brand || '').toLowerCase().includes('jinko')).length },
-      { id: 'brand_canadian', label: 'Canadian Solar (460Wp)', count: items.filter((p) => (p.name || '').toLowerCase().includes('canadian') || (p.brand || '').toLowerCase().includes('canadian')).length }
-    ];
-  }
+  // 1. Marcas disponíveis na categoria
+  const brandCounts = new Map();
+  items.forEach((item) => {
+    const b = (item.brand || 'Outro').trim();
+    brandCounts.set(b, (brandCounts.get(b) || 0) + 1);
+  });
 
-  if (select) {
-    select.replaceChildren();
-    filters.forEach((f) => {
+  if (brandSelect) {
+    brandSelect.replaceChildren();
+    const optAll = document.createElement('option');
+    optAll.value = 'all';
+    optAll.textContent = `Todas as Marcas (${items.length})`;
+    if (activeBrandFilter === 'all') optAll.selected = true;
+    brandSelect.append(optAll);
+
+    brandCounts.forEach((count, brand) => {
       const opt = document.createElement('option');
-      opt.value = f.id;
-      opt.textContent = `${f.label.replace(/^[🔹⚡✨]\s*/, '')} (${f.count})`;
-      if (activeSubFilter === f.id) opt.selected = true;
-      select.append(opt);
+      opt.value = brand;
+      opt.textContent = `${brand} (${count})`;
+      if (activeBrandFilter === brand) opt.selected = true;
+      brandSelect.append(opt);
     });
   }
 
+  // 2. Tensões nominais disponíveis (respeitando marca selecionada)
+  const itemsForVoltage = activeBrandFilter === 'all'
+    ? items
+    : items.filter((item) => (item.brand || 'Outro').trim() === activeBrandFilter);
+
+  const voltageCounts = new Map();
+  itemsForVoltage.forEach((item) => {
+    const v = getItemVoltageLabel(activeCategory, item);
+    if (!v) return;
+    voltageCounts.set(v, (voltageCounts.get(v) || 0) + 1);
+  });
+
+  if (activeVoltageFilter !== 'all' && !voltageCounts.has(activeVoltageFilter)) {
+    activeVoltageFilter = 'all';
+  }
+
+  if (voltageSelect) {
+    voltageSelect.replaceChildren();
+    const optAllV = document.createElement('option');
+    optAllV.value = 'all';
+    optAllV.textContent = `Todas as Tensões (${itemsForVoltage.length})`;
+    if (activeVoltageFilter === 'all') optAllV.selected = true;
+    voltageSelect.append(optAllV);
+
+    voltageCounts.forEach((count, volt) => {
+      const opt = document.createElement('option');
+      opt.value = volt;
+      opt.textContent = `${volt} (${count})`;
+      if (activeVoltageFilter === volt) opt.selected = true;
+      voltageSelect.append(opt);
+    });
+  }
+
+  // 3. Chips rápidos organizados por Categoria | Marca | Tensão
   if (bar) {
-    filters.forEach((f) => {
+    const chipSvg = getCategoryChipSvg(activeCategory);
+
+    const allBtn = document.createElement('button');
+    allBtn.type = 'button';
+    allBtn.className = 'subfilter-chip' + (activeGroupFilter === 'all' && activeBrandFilter === 'all' && activeVoltageFilter === 'all' ? ' active' : '');
+    allBtn.innerHTML = `${chipSvg} <span>Todos</span> <span class="chip-count">${items.length}</span>`;
+    allBtn.onclick = () => {
+      activeGroupFilter = 'all';
+      activeBrandFilter = 'all';
+      activeVoltageFilter = 'all';
+      renderSubFilters();
+      renderTable();
+    };
+    bar.append(allBtn);
+
+    const groups = new Map();
+    items.forEach((item) => {
+      const catGrp = getItemGroupLabel(activeCategory, item);
+      const brand = (item.brand || 'Outro').trim();
+      const volt = getItemVoltageLabel(activeCategory, item);
+      const key = `${catGrp} | ${brand} | ${volt}`;
+      if (!groups.has(key)) {
+        groups.set(key, { key, catGrp, brand, volt, count: 0 });
+      }
+      groups.get(key).count++;
+    });
+
+    groups.forEach((g) => {
+      const isSelected = activeGroupFilter === g.key;
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'subfilter-chip' + (activeSubFilter === f.id ? ' active' : '');
-      btn.setAttribute('data-filter-id', f.id);
-      btn.innerHTML = `<span>${escapeHtml(f.label)}</span> <span class="chip-count">${f.count}</span>`;
+      btn.className = 'subfilter-chip' + (isSelected ? ' active' : '');
+      btn.innerHTML = `${chipSvg} <span>${escapeHtml(g.key)}</span> <span class="chip-count">${g.count}</span>`;
       btn.onclick = () => {
-        activeSubFilter = f.id;
-        if (select) select.value = f.id;
+        if (activeGroupFilter === g.key) {
+          activeGroupFilter = 'all';
+          activeBrandFilter = 'all';
+          activeVoltageFilter = 'all';
+        } else {
+          activeGroupFilter = g.key;
+          activeBrandFilter = g.brand;
+          activeVoltageFilter = g.volt;
+        }
         renderSubFilters();
         renderTable();
       };
@@ -925,18 +1000,21 @@ function renderSubFilters() {
   }
 }
 
-function onSubFilterDropdownChange(val) {
-  activeSubFilter = val || 'all';
-  const bar = $('admin-subfilters-bar');
-  if (bar) {
-    const chips = bar.querySelectorAll('.subfilter-chip');
-    chips.forEach((c) => {
-      c.classList.toggle('active', c.getAttribute('data-filter-id') === activeSubFilter);
-    });
-  }
+function onBrandFilterChange(val) {
+  activeBrandFilter = val || 'all';
+  activeGroupFilter = 'all';
+  renderSubFilters();
   renderTable();
 }
-window.onSubFilterDropdownChange = onSubFilterDropdownChange;
+window.onBrandFilterChange = onBrandFilterChange;
+
+function onVoltageFilterChange(val) {
+  activeVoltageFilter = val || 'all';
+  activeGroupFilter = 'all';
+  renderSubFilters();
+  renderTable();
+}
+window.onVoltageFilterChange = onVoltageFilterChange;
 
 function handleTableSearch(query) {
   filterQuery = (query || '').toLowerCase().trim();
@@ -954,32 +1032,23 @@ function renderTable() {
   const items = adminProducts[activeCategory] || [];
 
   const filtered = items.filter((item) => {
+    const itemBrand = (item.brand || 'Outro').trim();
+    const itemVoltage = getItemVoltageLabel(activeCategory, item);
+    const itemGroup = getItemGroupLabel(activeCategory, item);
+
     if (filterQuery) {
       const idMatch = (item.id || '').toLowerCase().includes(filterQuery);
       const skuMatch = (item.sku || '').toLowerCase().includes(filterQuery);
       const nameMatch = (item.name || '').toLowerCase().includes(filterQuery);
-      const extraMatch = (item.extra || '').toLowerCase().includes(filterQuery);
-      const brandMatch = (item.brand || '').toLowerCase().includes(filterQuery);
-      if (!idMatch && !skuMatch && !nameMatch && !extraMatch && !brandMatch) return false;
+      const brandMatch = itemBrand.toLowerCase().includes(filterQuery);
+      const voltMatch = itemVoltage.toLowerCase().includes(filterQuery);
+      const grpMatch = itemGroup.toLowerCase().includes(filterQuery);
+      if (!idMatch && !skuMatch && !nameMatch && !brandMatch && !voltMatch && !grpMatch) return false;
     }
 
-    if (activeSubFilter !== 'all') {
-      if (activeSubFilter === 'lv' && item.voltageType !== 'LV') return false;
-      if (activeSubFilter === 'hv' && item.voltageType !== 'HV') return false;
-      if (activeSubFilter === '1ph' && item.phase !== '1ph') return false;
-      if (activeSubFilter === 'split' && item.phase !== 'split') return false;
-      if (activeSubFilter === '3ph' && item.phase !== '3ph') return false;
-      if (activeSubFilter === 'brand_megatron' && !((item.brand || '').toLowerCase().includes('megatron') || (item.name || '').toLowerCase().includes('megatron'))) return false;
-      if (activeSubFilter === 'brand_deye' && !((item.brand || '').toLowerCase().includes('deye') || (item.name || '').toLowerCase().includes('deye'))) return false;
-      if (activeSubFilter === 'brand_livoltek' && !((item.brand || '').toLowerCase().includes('livoltek') || (item.name || '').toLowerCase().includes('livoltek'))) return false;
-      if (activeSubFilter === 'brand_sigen' && !((item.brand || '').toLowerCase().includes('sigen') || (item.name || '').toLowerCase().includes('sigen'))) return false;
-      if (activeSubFilter === 'brand_anern' && !((item.brand || '').toLowerCase().includes('anern') || (item.name || '').toLowerCase().includes('anern'))) return false;
-      if (activeSubFilter === 'brand_dyness' && !((item.brand || '').toLowerCase().includes('dyness') || (item.name || '').toLowerCase().includes('dyness'))) return false;
-      if (activeSubFilter === 'brand_hz' && !((item.brand || '').toLowerCase().includes('hz') || (item.name || '').toLowerCase().includes('hz'))) return false;
-      if (activeSubFilter === 'bifacial' && !(item.panelType === 'bifacial_dual_glass' || (item.extra || '').toLowerCase().includes('bifacial') || (item.name || '').toLowerCase().includes('bifacial'))) return false;
-      if (activeSubFilter === 'brand_jinko' && !((item.name || '').toLowerCase().includes('jinko') || (item.brand || '').toLowerCase().includes('jinko'))) return false;
-      if (activeSubFilter === 'brand_canadian' && !((item.name || '').toLowerCase().includes('canadian') || (item.brand || '').toLowerCase().includes('canadian'))) return false;
-    }
+    if (activeBrandFilter !== 'all' && itemBrand !== activeBrandFilter) return false;
+    if (activeVoltageFilter !== 'all' && itemVoltage !== activeVoltageFilter) return false;
+    if (activeGroupFilter !== 'all' && `${itemGroup} | ${itemBrand} | ${itemVoltage}` !== activeGroupFilter) return false;
 
     return true;
   });
@@ -987,7 +1056,7 @@ function renderTable() {
   const countPill = $('current-category-count');
   if (countPill) {
     const totalInCat = items.length;
-    if (filterQuery || activeSubFilter !== 'all') {
+    if (filterQuery || activeBrandFilter !== 'all' || activeVoltageFilter !== 'all' || activeGroupFilter !== 'all') {
       countPill.textContent = `${filtered.length} de ${totalInCat} equipamentos (filtrados)`;
     } else {
       countPill.textContent = `${totalInCat} ${totalInCat === 1 ? 'equipamento ativo' : 'equipamentos ativos'}`;
@@ -1013,11 +1082,12 @@ function renderTable() {
     const tr = document.createElement('tr');
 
     const tdName = document.createElement('td');
-    const brandBadge = item.brand ? `<span class="badge-brand">${escapeHtml(item.brand)}</span>` : '';
     const defaultFallback = getProductImage(activeCategory, item);
     const imgSrc = sanitizeImageUrl(item.image, defaultFallback);
     const safeName = escapeHtml(item.name);
-    const safeId = escapeHtml(item.id);
+    const safeSku = escapeHtml(item.sku || item.id);
+    const itemGroup = getItemGroupLabel(activeCategory, item);
+    const itemVoltage = getItemVoltageLabel(activeCategory, item);
 
     tdName.innerHTML = `
       <div class="prod-table-item">
@@ -1025,48 +1095,34 @@ function renderTable() {
         <div style="flex: 1; min-width: 0;">
           <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 2px;">
             <span class="prod-name-title">${safeName}</span>
-            ${brandBadge}
           </div>
-          <small style="color: var(--muted); font-size: 11px;">ID: <code>${safeId}</code></small>
+          <small style="color: var(--muted); font-size: 11px;"><code>${safeSku}</code></small>
         </div>
       </div>
     `;
 
-    const tdVoltage = document.createElement('td');
+    const tdGroupBrand = document.createElement('td');
     const tags = [];
-    if (activeCategory === 'panels') {
-      const isBifacial = item.panelType === 'bifacial_dual_glass' || (item.extra || '').toLowerCase().includes('bifacial') || (item.name || '').toLowerCase().includes('bifacial');
-      if (isBifacial) {
-        tags.push(`<span class="badge-volt hv">Dual Glass Bifacial</span>`);
-        tags.push(`<span class="badge-phase">N-Type SMBB</span>`);
-      } else {
-        tags.push(`<span class="badge-phase">Mono-PERC Tier 1</span>`);
-      }
-    } else {
-      if (item.voltageType === 'LV') {
-        tags.push(`<span class="badge-volt lv">LV · 48V/51.2V</span>`);
-      } else if (item.voltageType === 'HV') {
-        tags.push(`<span class="badge-volt hv">HV · Alta Tensão</span>`);
-      }
-
-      if (item.phase === '1ph') {
-        tags.push(`<span class="badge-phase">1ph (Monofásico)</span>`);
-      } else if (item.phase === 'split') {
-        tags.push(`<span class="badge-phase">Split-Phase (Bifásico)</span>`);
-      } else if (item.phase === '3ph') {
-        tags.push(`<span class="badge-phase">3ph (Trifásico)</span>`);
-      }
+    if (item.brand) {
+      tags.push(`<span class="badge-brand">${escapeHtml(item.brand)}</span>`);
     }
+    if (itemGroup) {
+      tags.push(`<span class="badge-phase">${escapeHtml(itemGroup)}</span>`);
+    }
+    if (activeCategory === 'inverters' && item.phase) {
+      const phLabel = item.phase === '1ph' ? 'Monofásico (1ph)' : (item.phase === 'split' ? 'Split-Phase' : 'Trifásico (3ph)');
+      tags.push(`<span class="badge-phase">${phLabel}</span>`);
+    }
+    tdGroupBrand.innerHTML = `<div class="tech-tags-row">${tags.join('')}</div>`;
 
-    tdVoltage.innerHTML = tags.length === 0
-      ? `<span style="color: var(--muted); font-size: 11px;">— Padrão Solar —</span>`
-      : `<div class="tech-tags-row">${tags.join('')}</div>`;
+    const tdVoltage = document.createElement('td');
+    const isHv = item.voltageType === 'HV' || itemVoltage.includes('(HV)');
+    tdVoltage.innerHTML = `<span class="badge-volt ${isHv ? 'hv' : 'lv'}">${escapeHtml(itemVoltage)}</span>`;
 
     const tdCap = document.createElement('td');
     let capText = '';
     if (activeCategory === 'panels') {
-      const effTag = item.efficiency ? `<small style="display: block; font-size: 10px; color: #047857; font-weight: 700; margin-top: 2px;">Efic. ${escapeHtml(item.efficiency)}</small>` : '';
-      capText = `${escapeHtml(item.power)} Wp${effTag}`;
+      capText = `${escapeHtml(item.power)} Wp`;
     } else if (activeCategory === 'inverters') {
       capText = `${escapeHtml(item.power)} kW`;
     } else {
@@ -1076,13 +1132,6 @@ function renderTable() {
 
     const tdPrice = document.createElement('td');
     tdPrice.innerHTML = `<span class="prod-price-text">${money(item.price)}</span>`;
-
-    const tdExtra = document.createElement('td');
-    const extraParts = [];
-    if (item.extra) extraParts.push(escapeHtml(item.extra));
-    if (item.dimensions) extraParts.push(`Dim: ${escapeHtml(item.dimensions)}`);
-    if (item.warranty) extraParts.push(`Garantia: ${escapeHtml(item.warranty)}`);
-    tdExtra.innerHTML = `<span style="font-size: 11.5px; color: var(--muted); line-height: 1.35; display: block;">${extraParts.join(' · ') || '—'}</span>`;
 
     const tdActions = document.createElement('td');
     tdActions.style.textAlign = 'right';
@@ -1109,7 +1158,7 @@ function renderTable() {
     }
 
     tdActions.append(actionDiv);
-    tr.append(tdName, tdVoltage, tdCap, tdPrice, tdExtra, tdActions);
+    tr.append(tdName, tdGroupBrand, tdVoltage, tdCap, tdPrice, tdActions);
     tbody.append(tr);
   });
 }
@@ -1406,14 +1455,14 @@ window.onSelectImagePreset = onSelectImagePreset;
 function updateModalImagePreview(url) {
   const preview = $('form-img-preview');
   if (preview) {
-    preview.src = sanitizeImageUrl(url, 'img/products/panel-jinko.svg');
+    preview.src = sanitizeImageUrl(url, 'img/products/panel-jinko.png');
   }
   updateLivePreview();
 }
 window.updateModalImagePreview = updateModalImagePreview;
 
 function onBrandSelectChange(brandValue) {
-  // Se o utilizador já carregou uma foto personalizada, NÃO sobrescreve com o SVG padrão da marca
+  // Se o utilizador já carregou uma foto personalizada, NÃO sobrescreve com a imagem padrão da marca
   if (currentUploadedImageDataUrl) return;
   const currentImg = $('form-prod-image') ? $('form-prod-image').value.trim() : '';
   if (currentImg && currentImg.startsWith('data:image/')) return;
@@ -1423,20 +1472,21 @@ function onBrandSelectChange(brandValue) {
   let defaultImg = '';
 
   if (cat === 'panels') {
-    if (brand.includes('canadian')) defaultImg = 'img/products/panel-canadian.svg';
-    else if (brand.includes('ja')) defaultImg = 'img/products/panel-ja.svg';
-    else if (brand.includes('longi')) defaultImg = 'img/products/panel-longi.svg';
-    else defaultImg = 'img/products/panel-jinko.svg';
+    if (brand.includes('canadian')) defaultImg = 'img/products/panel-canadian.png';
+    else defaultImg = 'img/products/panel-jinko.png';
   } else if (cat === 'inverters') {
-    if (brand.includes('megatron')) defaultImg = 'img/products/inv-megatron-lv.svg';
-    else if (brand.includes('livoltek')) defaultImg = 'img/products/inv-livoltek-lv.svg';
-    else if (brand.includes('sigen')) defaultImg = 'img/products/inv-sigen-hv.svg';
-    else defaultImg = 'img/products/inv-deye-lv.svg';
+    if (brand.includes('megatron')) defaultImg = 'img/products/inv-megatron.png';
+    else if (brand.includes('livoltek')) defaultImg = 'img/products/inv-livoltek.png';
+    else if (brand.includes('sigen')) defaultImg = 'img/products/inv-sigen.png';
+    else if (brand.includes('anern')) defaultImg = 'img/products/inv-anern.png';
+    else defaultImg = 'img/products/inv-deye.png';
   } else if (cat === 'batteries') {
-    if (brand.includes('megatron')) defaultImg = 'img/products/bat-megatron-lv.svg';
-    else if (brand.includes('livoltek')) defaultImg = 'img/products/bat-livoltek-bhf.svg';
-    else if (brand.includes('sigen')) defaultImg = 'img/products/bat-sigen-hv.svg';
-    else defaultImg = 'img/products/bat-deye-lv.svg';
+    if (brand.includes('megatron')) defaultImg = 'img/products/bat-megatron.jpg';
+    else if (brand.includes('livoltek')) defaultImg = 'img/products/bat-livoltek-bhf.webp';
+    else if (brand.includes('sigen')) defaultImg = 'img/products/bat-sigen.webp';
+    else if (brand.includes('dyness')) defaultImg = 'img/products/bat-dyness.png';
+    else if (brand.includes('hz')) defaultImg = 'img/products/bat-hz-gel.webp';
+    else defaultImg = 'img/products/bat-deye.jpg';
   }
 
   if (defaultImg) {
@@ -1564,6 +1614,9 @@ async function handleSaveProduct(event) {
   if (id) {
     const index = list.findIndex((x) => x.id === id);
     if (index !== -1) {
+      if (list[index].name !== name) {
+        list[index]._customName = true;
+      }
       list[index].name = name;
       list[index].brand = brand;
       list[index].price = price;
@@ -1586,6 +1639,8 @@ async function handleSaveProduct(event) {
       } else {
         list[index].power = Math.round(cap);
       }
+      list[index].categoryGroup = inferCategoryGroup(category, list[index]);
+      list[index].nominalVoltage = inferNominalVoltage(category, list[index]);
     }
   } else {
     const newItem = {
@@ -1594,7 +1649,8 @@ async function handleSaveProduct(event) {
       brand,
       price,
       image,
-      extra
+      extra,
+      _customName: true
     };
     if (category === 'inverters') {
       newItem.power = cap;
@@ -1611,6 +1667,8 @@ async function handleSaveProduct(event) {
     } else {
       newItem.power = Math.round(cap);
     }
+    newItem.categoryGroup = inferCategoryGroup(category, newItem);
+    newItem.nominalVoltage = inferNominalVoltage(category, newItem);
     list.push(newItem);
   }
 
@@ -1788,14 +1846,14 @@ async function handleChangePassword(event) {
 
   if (newEntered.length < 6) {
     msgBox.className = 'alert-box error';
-    msgBox.textContent = '❌ A nova palavra-passe deve conter pelo menos 6 caracteres.';
+    msgBox.textContent = 'A nova palavra-passe deve conter pelo menos 6 caracteres.';
     newPwdInput.focus();
     return;
   }
 
   if (newEntered !== confirmEntered) {
     msgBox.className = 'alert-box error';
-    msgBox.textContent = '❌ A nova palavra-passe e a confirmação não coincidem.';
+    msgBox.textContent = 'A nova palavra-passe e a confirmação não coincidem.';
     confirmPwdInput.focus();
     return;
   }
@@ -1810,13 +1868,13 @@ async function handleChangePassword(event) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         msgBox.className = 'alert-box error';
-        msgBox.textContent = '❌ ' + (data.error || 'Erro ao atualizar palavra-passe.');
+        msgBox.textContent = data.error || 'Erro ao atualizar palavra-passe.';
         currentPwdInput.focus();
         return;
       }
     } catch (err) {
       msgBox.className = 'alert-box error';
-      msgBox.textContent = '❌ Erro de ligação ao servidor: ' + err.message;
+      msgBox.textContent = 'Erro de ligação ao servidor: ' + err.message;
       return;
     }
   } else {
@@ -1824,7 +1882,7 @@ async function handleChangePassword(event) {
     const enteredHash = await sha256Hex(currentEntered);
     if (enteredHash !== creds.passwordHash) {
       msgBox.className = 'alert-box error';
-      msgBox.textContent = '❌ A palavra-passe actual introduzida está incorrecta.';
+      msgBox.textContent = 'A palavra-passe actual introduzida está incorrecta.';
       currentPwdInput.focus();
       return;
     }
@@ -1837,7 +1895,7 @@ async function handleChangePassword(event) {
   }
 
   msgBox.className = 'alert-box success';
-  msgBox.textContent = '✓ Palavra-passe actualizada com sucesso! Utilize a nova senha nos próximos acessos.';
+  msgBox.textContent = 'Palavra-passe actualizada com sucesso! Utilize a nova senha nos próximos acessos.';
   currentPwdInput.value = '';
   newPwdInput.value = '';
   confirmPwdInput.value = '';

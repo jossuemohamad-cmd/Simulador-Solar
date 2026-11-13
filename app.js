@@ -3,11 +3,11 @@
  * Dimensionamento técnico, gestão de catálogo de equipamentos (Admin) e proposta formal.
  */
 
-// Biblioteca de Ícones SVG
+// Biblioteca de Ícones SVG Vetoriais
 const ICONS = {
-  led: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2v1"/><path d="M12 7a5 5 0 0 0-5 5c0 2.5 1.5 3.5 2 5h6c.5-1.5 2-2.5 2-5a5 5 0 0 0-5-5z"/></svg>`,
-  tv: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>`,
-  fridge: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="9" y1="5" x2="9" y2="7"/><line x1="9" y1="13" x2="9" y2="16"/></svg>`,
+  led: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2v1"/><path d="M4.2 10.2l.7.7"/><path d="M19.1 10.9l.7-.7"/><path d="M12 6a5 5 0 0 0-5 5c0 2.3 1.4 3.4 2 5h6c.6-1.6 2-2.7 2-5a5 5 0 0 0-5-5z"/></svg>`,
+  tv: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><polyline points="16 2 12 6 8 2"/><line x1="8" y1="22" x2="16" y2="22"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,
+  fridge: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="9" y1="5" x2="9" y2="7"/><line x1="9" y1="13" x2="9" y2="17"/></svg>`,
   freezer: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>`,
   fan: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c-2.5-3-2.5-6.5-1-8 2-2 6 2 4.5 4.5"/><path d="M12 12c3-2.5 6.5-2.5 8-1 2 2-2 6-4.5 4.5"/><path d="M12 12c2.5 3 2.5 6.5 1 8-2 2-6-2-4.5-4.5"/><path d="M12 12c-3 2.5-6.5 2.5-8 1-2-2 2-6 4.5-4.5"/><circle cx="12" cy="12" r="2"/></svg>`,
   laptop: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20"/></svg>`,
@@ -23,12 +23,13 @@ const ICONS = {
   kettle: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>`,
   waterheater: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="6"/><line x1="10" y1="7" x2="14" y2="7"/><circle cx="12" cy="14" r="2"/></svg>`,
   custom: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
-  solar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="12" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="15"/><line x1="15" y1="3" x2="15" y2="15"/><line x1="6" y1="19" x2="18" y2="19"/><line x1="12" y1="15" x2="12" y2="19"/></svg>`,
+  solar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="12" rx="1.5"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="15"/><line x1="15" y1="3" x2="15" y2="15"/><line x1="6" y1="19" x2="18" y2="19"/><line x1="12" y1="15" x2="12" y2="19"/></svg>`,
   inverter: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>`,
   battery: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="16" height="12" rx="2"/><line x1="22" y1="11" x2="22" y2="15"/><line x1="7" y1="11" x2="7" y2="15"/><line x1="11" y1="11" x2="11" y2="15"/></svg>`,
   cash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.8 9A2 2 0 0 0 13 8h-2a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4h-2a2 2 0 0 1-1.8-1"/><path d="M12 6v2m0 8v2"/></svg>`,
   trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
-  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  info: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`
 };
 
 // Catálogo Base de Aparelhos Domésticos e Comerciais (Formato: [icone, nome, potenciaW, horasDia, fatorUso, essencialPadrao])
@@ -560,7 +561,10 @@ function renderLoadsList() {
       note.className = 'small';
       note.style.marginTop = '4px';
       note.style.color = '#8a5b28';
-      note.textContent = 'ℹ Refrigeração: cálculo considera ciclo de compressor de 35%.';
+      note.style.display = 'inline-flex';
+      note.style.alignItems = 'center';
+      note.style.gap = '5px';
+      note.innerHTML = `${ICONS.info}<span>Refrigeração: cálculo considera ciclo de compressor de 35%.</span>`;
       row.append(note);
     }
 
@@ -803,13 +807,17 @@ function populateProductSelectors(r) {
 
   if (!panelSel || !invSel || !batSel) return;
 
-  // 1. Painéis - Gama Oficial Jinko Tiger Neo N-Type Bifacial (Dual Glass) (Sem exibição de preços individuais)
+  // 1. Painéis - Organizados por Gama e Marca (Sem exibição de preços individuais)
   panelSel.replaceChildren();
 
   const panelGroups = [
     {
-      label: '✨ Módulos N-Type Bifaciais Dual Glass — Jinko Tiger Neo (600W a 625W)',
-      items: adminProducts.panels
+      label: 'Painéis Solares N-Type Bifaciais (Dual Glass) | Jinko Solar',
+      items: adminProducts.panels.filter((p) => (p.brand || '').toLowerCase().includes('jinko'))
+    },
+    {
+      label: 'Painéis Solares Monocristalinos | Outras Marcas',
+      items: adminProducts.panels.filter((p) => !(p.brand || '').toLowerCase().includes('jinko'))
     }
   ];
 
@@ -821,7 +829,6 @@ function populateProductSelectors(r) {
     grp.items.forEach((p) => {
       const opt = document.createElement('option');
       opt.value = p.id;
-      // Oculta o preço no produto, exibindo apenas especificações técnicas
       opt.textContent = `${p.name} · ${p.power} Wp`;
       opt.dataset.image = p.image || getProductImage('panels', p);
       if (p.id === r.selectedPanel.id) opt.selected = true;
@@ -835,21 +842,15 @@ function populateProductSelectors(r) {
     $('img-panel-thumb').src = r.selectedPanel.image || getProductImage('panels', r.selectedPanel);
   }
   if ($('badge-panel-qty')) $('badge-panel-qty').textContent = `${r.panels} un.`;
-  if ($('badge-panel-tech')) {
-    const isBifacial = r.selectedPanel.panelType === 'bifacial_dual_glass' || (r.selectedPanel.extra || '').toLowerCase().includes('bifacial') || (r.selectedPanel.name || '').toLowerCase().includes('bifacial');
-    $('badge-panel-tech').textContent = isBifacial ? 'N-Type Dual Glass' : 'Tier 1 Mono';
-    $('badge-panel-tech').className = 'tech-pill' + (isBifacial ? ' hv' : '');
-  }
 
-  // 2. Inversores - Agrupados por Tensão e Fases (LV 1ph, Split-Phase, LV 3ph, HV 900V All-in-One) (Sem preços no produto)
+  // 2. Inversores - Organizados por Categoria | Marca | Tensão (Sem preços no produto)
   invSel.replaceChildren();
 
   const invGroups = [
-    { label: '🔹 Inversores Baixa Tensão (LV ~48V) — 1ph Monofásicos', items: adminProducts.inverters.filter((i) => (i.voltageType || 'LV') === 'LV' && i.phase === '1ph') },
-    { label: '🔹 Inversores Baixa Tensão (LV ~48V) — Split-Phase (Bifásicos)', items: adminProducts.inverters.filter((i) => (i.voltageType || 'LV') === 'LV' && i.phase === 'split') },
-    { label: '🔹 Inversores Baixa Tensão (LV ~48V) — 3ph Trifásicos', items: adminProducts.inverters.filter((i) => (i.voltageType || 'LV') === 'LV' && i.phase === '3ph') },
-    { label: '⚡ Inversores & Controladores Alta Tensão (HV ~900V) — Sigenergy All-in-One (3ph)', items: adminProducts.inverters.filter((i) => i.voltageType === 'HV') },
-    { label: '⚡ Outros Inversores Híbridos', items: adminProducts.inverters.filter((i) => !((i.voltageType || 'LV') === 'LV' && ['1ph', 'split', '3ph'].includes(i.phase)) && i.voltageType !== 'HV') }
+    { label: 'Inversores Híbridos Baixa Tensão (LV) | Deye · 48V', items: adminProducts.inverters.filter((i) => (i.voltageType || 'LV') === 'LV' && (i.brand || '').toLowerCase().includes('deye')) },
+    { label: 'Inversores Híbridos Baixa Tensão (LV) | LIVOLTEK · 48V', items: adminProducts.inverters.filter((i) => (i.voltageType || 'LV') === 'LV' && (i.brand || '').toLowerCase().includes('livoltek')) },
+    { label: 'Controladores e Inversores Alta Tensão (HV) | Sigenergy · 900V', items: adminProducts.inverters.filter((i) => i.voltageType === 'HV') },
+    { label: 'Inversores Solares Baixa Tensão (LV) | Outras Marcas', items: adminProducts.inverters.filter((i) => (i.voltageType || 'LV') === 'LV' && !(i.brand || '').toLowerCase().includes('deye') && !(i.brand || '').toLowerCase().includes('livoltek')) }
   ];
 
   invGroups.forEach((grp) => {
@@ -860,7 +861,6 @@ function populateProductSelectors(r) {
     grp.items.forEach((inv) => {
       const opt = document.createElement('option');
       opt.value = inv.id;
-      // Oculta o preço no produto
       opt.textContent = `${inv.name} · ${inv.power} kW`;
       opt.dataset.image = inv.image || getProductImage('inverters', inv);
       if (inv.id === r.selectedInverter.id) opt.selected = true;
@@ -874,26 +874,16 @@ function populateProductSelectors(r) {
     $('img-inv-thumb').src = r.selectedInverter.image || getProductImage('inverters', r.selectedInverter);
   }
   if ($('badge-inverter-qty')) $('badge-inverter-qty').textContent = `${r.invQty} un.`;
-  if ($('badge-inv-type')) {
-    const badgeEl = $('badge-inv-type');
-    if (r.selectedInverter.voltageType === 'HV') {
-      badgeEl.textContent = 'HV · 900V · 3ph';
-      badgeEl.className = 'tech-pill hv';
-    } else {
-      const ph = r.selectedInverter.phase === '1ph' ? '1ph' : (r.selectedInverter.phase === 'split' ? 'Split' : '3ph');
-      badgeEl.textContent = `LV · 48V · ${ph}`;
-      badgeEl.className = 'tech-pill';
-    }
-  }
 
-  // 3. Baterias - Agrupadas por Tensão e Linha Modular (LV 51.2V, HV Sigenergy, HV Livoltek BHF) (Sem preços no produto)
+  // 3. Baterias - Organizadas por Categoria | Marca | Tensão Nominal (Sem preços no produto)
   batSel.replaceChildren();
 
   const batGroups = [
-    { label: '🔹 Baterias Baixa Tensão (LV ~51.2V / 48V)', items: adminProducts.batteries.filter((b) => (b.voltageType || 'LV') === 'LV') },
-    { label: '⚡ Baterias Alta Tensão (HV) — Linha Modular Sigenergy (300-900V)', items: adminProducts.batteries.filter((b) => b.voltageType === 'HV' && (b.subcategory === 'sigen_hv' || (b.brand || '').toLowerCase().includes('sigen'))) },
-    { label: '⚡ Baterias Alta Tensão (HV) — Linha Torre Livoltek BHF (10 a 61 kWh)', items: adminProducts.batteries.filter((b) => b.voltageType === 'HV' && (b.subcategory === 'livoltek_bhf' || (b.brand || '').toLowerCase().includes('livoltek'))) },
-    { label: '⚡ Baterias Alta Tensão (HV) — Outras Linhas', items: adminProducts.batteries.filter((b) => b.voltageType === 'HV' && b.subcategory !== 'sigen_hv' && b.subcategory !== 'livoltek_bhf' && !(b.brand || '').toLowerCase().includes('sigen') && !(b.brand || '').toLowerCase().includes('livoltek')) }
+    { label: 'Baterias de Baixa Tensão (LV) | Deye · 51.2V', items: adminProducts.batteries.filter((b) => (b.voltageType || 'LV') === 'LV' && (b.brand || '').toLowerCase().includes('deye')) },
+    { label: 'Baterias de Alta Tensão (HV) | Sigenergy · 300-900V', items: adminProducts.batteries.filter((b) => b.voltageType === 'HV' && (b.subcategory === 'sigen_hv' || (b.brand || '').toLowerCase().includes('sigen'))) },
+    { label: 'Baterias de Alta Tensão (HV) | LIVOLTEK BHF · 102V-614V', items: adminProducts.batteries.filter((b) => b.voltageType === 'HV' && (b.subcategory === 'livoltek_bhf' || (b.brand || '').toLowerCase().includes('livoltek'))) },
+    { label: 'Baterias de Baixa Tensão (LV) | Outras Marcas', items: adminProducts.batteries.filter((b) => (b.voltageType || 'LV') === 'LV' && !(b.brand || '').toLowerCase().includes('deye')) },
+    { label: 'Baterias de Alta Tensão (HV) | Outras Marcas', items: adminProducts.batteries.filter((b) => b.voltageType === 'HV' && b.subcategory !== 'sigen_hv' && b.subcategory !== 'livoltek_bhf' && !(b.brand || '').toLowerCase().includes('sigen') && !(b.brand || '').toLowerCase().includes('livoltek')) }
   ];
 
   batGroups.forEach((grp) => {
@@ -996,7 +986,11 @@ function syncCustomDropdown(selectId, category) {
     if (node.tagName.toLowerCase() === 'optgroup') {
       const header = document.createElement('div');
       header.className = 'custom-select-group-header';
-      header.textContent = node.label;
+      header.style.display = 'flex';
+      header.style.alignItems = 'center';
+      header.style.gap = '6px';
+      const hdrIcon = category === 'panel' ? ICONS.solar : (category === 'inverter' ? ICONS.inverter : ICONS.battery);
+      header.innerHTML = `<span style="display:inline-flex;width:13px;height:13px;color:var(--orange-hover);flex-shrink:0;">${hdrIcon}</span><span>${escapeHtml(node.label)}</span>`;
       menu.append(header);
 
       Array.from(node.children).forEach((opt) => {
@@ -1396,30 +1390,30 @@ function buildQuoteSummaryText(r, clientName, clientPhone, location, projType, b
     .join('\n');
 
   return [
-    '☀️ *PROPOSTA TÉCNICA E COMERCIAL SOLAR — LECASU*',
+    '*PROPOSTA TÉCNICA E COMERCIAL SOLAR — LECASU*',
     '------------------------------------------',
-    `👤 *Cliente:* ${clientName}`,
-    `📱 *Contacto:* ${clientPhone}`,
-    `📍 *Local:* ${location}`,
-    `🏢 *Tipo:* ${projType}`,
-    `⏱️ *Autonomia:* ${backupHours > 0 ? `${backupHours} horas em corte da EDM` : 'Sem baterias (Solar Direto / Autoconsumo)'}`,
+    `*Cliente:* ${clientName}`,
+    `*Contacto:* ${clientPhone}`,
+    `*Local:* ${location}`,
+    `*Tipo:* ${projType}`,
+    `*Autonomia:* ${backupHours > 0 ? `${backupHours} horas em corte da EDM` : 'Sem baterias (Solar Direto / Autoconsumo)'}`,
     '',
-    '⚡ *EQUIPAMENTOS SELECIONADOS NO CATÁLOGO:*',
-    `• Painéis Solares: ${r.panels} × ${r.selectedPanel.name} (${fmt(r.pv)} kWp)`,
-    `• Inversor Híbrido: ${r.invQty} × ${r.selectedInverter.name} (${r.inv} kW)`,
-    `• Baterias LiFePO4: ${r.batteries > 0 ? `${r.batteries} × ${r.selectedBattery.name} (${fmt(r.bat)} kWh)` : 'Sem acumuladores (Solar Direto)'}`,
-    `• Consumo Diário Estimado: ${fmt(r.e)} kWh/dia`,
-    `• Potência Total Ligada: ${fmt(r.p)} kW`,
+    '*EQUIPAMENTOS SELECIONADOS NO CATÁLOGO:*',
+    `- Painéis Solares: ${r.panels} x ${r.selectedPanel.name} (${fmt(r.pv)} kWp)`,
+    `- Inversor Híbrido: ${r.invQty} x ${r.selectedInverter.name} (${r.inv} kW)`,
+    `- Baterias LiFePO4: ${r.batteries > 0 ? `${r.batteries} x ${r.selectedBattery.name} (${fmt(r.bat)} kWh)` : 'Sem acumuladores (Solar Direto)'}`,
+    `- Consumo Diário Estimado: ${fmt(r.e)} kWh/dia`,
+    `- Potência Total Ligada: ${fmt(r.p)} kW`,
     '',
-    `🌱 *Geração Estimada:* ~${fmt(r.monthlyGenKwh)} kWh/mês`,
-    `💡 *Poupança Est. EDM:* ~${money(r.monthlySavingsMzn)}/mês (~${money(r.monthlySavingsMzn * 12)}/ano)`,
-    `🌍 *Redução de CO₂:* ~${r.co2AvoidedTonYear} ton CO₂/ano`,
+    `*Geração Estimada:* ~${fmt(r.monthlyGenKwh)} kWh/mês`,
+    `*Poupança Est. EDM:* ~${money(r.monthlySavingsMzn)}/mês (~${money(r.monthlySavingsMzn * 12)}/ano)`,
+    `*Redução de CO2:* ~${r.co2AvoidedTonYear} ton CO2/ano`,
     '',
-    `💰 *Subtotal (Sem IVA):* ${money(subtotal)}`,
-    `🏛️ *IVA Legal (16%):* ${money(iva)}`,
-    `✨ *INVESTIMENTO TOTAL (Com IVA 16%):* ${money(totalComIva)}`,
+    `*Subtotal (Sem IVA):* ${money(subtotal)}`,
+    `*IVA Legal (16%):* ${money(iva)}`,
+    `*INVESTIMENTO TOTAL (Com IVA 16%):* ${money(totalComIva)}`,
     '',
-    '📋 *Cargas Seleccionadas:*',
+    '*Cargas Seleccionadas:*',
     loadsSummary,
     '',
     'LECASU — Energy & Engineering Solutions · Matola-Rio · info@lecasu.co.mz'

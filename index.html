@@ -67,7 +67,7 @@
             <div class="search-input-wrapper">
               <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input type="text" id="catalog-search" placeholder="Pesquisar aparelho (ex: geleira, tv, ar condicionado, bomba)..." oninput="filterCatalog(this.value)">
-              <button type="button" id="search-clear-btn" class="search-clear" onclick="clearSearch()" hidden aria-label="Limpar pesquisa">×</button>
+              <button type="button" id="search-clear-btn" class="search-clear" onclick="clearSearch()" hidden aria-label="Limpar pesquisa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
             <span class="search-count" id="catalog-count">17 aparelhos</span>
           </div>
@@ -183,13 +183,12 @@
                 <label for="select-panel">
                   <span>Módulo Fotovoltaico</span>
                   <div style="display: flex; gap: 4px; align-items: center;">
-                    <span id="badge-panel-tech" class="tech-pill">Tier 1</span>
                     <strong id="badge-panel-qty" class="qty-pill">0 un.</strong>
                   </div>
                 </label>
                 <div class="selector-card-body">
                   <div class="selector-prod-thumb">
-                    <img id="img-panel-thumb" src="img/products/panel-jinko.svg" alt="Painel Solar">
+                    <img id="img-panel-thumb" src="img/products/panel-jinko.png" alt="Painel Solar">
                   </div>
                   <div class="selector-card-inputs">
                     <select id="select-panel" onchange="onSelectProduct('panel', this.value)"></select>
@@ -202,13 +201,12 @@
                 <label for="select-inverter">
                   <span>Inversor Híbrido &amp; Controlador</span>
                   <div style="display: flex; gap: 4px; align-items: center;">
-                    <span id="badge-inv-type" class="tech-pill">LV · 48V</span>
                     <strong id="badge-inverter-qty" class="qty-pill">1 un.</strong>
                   </div>
                 </label>
                 <div class="selector-card-body">
                   <div class="selector-prod-thumb">
-                    <img id="img-inv-thumb" src="img/products/inv-deye-lv.svg" alt="Inversor Híbrido">
+                    <img id="img-inv-thumb" src="img/products/inv-deye.png" alt="Inversor Híbrido">
                   </div>
                   <div class="selector-card-inputs">
                     <select id="select-inverter" onchange="onSelectProduct('inverter', this.value)"></select>
@@ -221,13 +219,12 @@
                 <label for="select-battery">
                   <span>Baterias &amp; Armazenamento (BESS)</span>
                   <div style="display: flex; gap: 4px; align-items: center;">
-                    <span id="badge-bat-compat" class="tech-pill compat">Compatível LV</span>
                     <strong id="badge-battery-qty" class="qty-pill">0 un.</strong>
                   </div>
                 </label>
                 <div class="selector-card-body">
                   <div class="selector-prod-thumb">
-                    <img id="img-bat-thumb" src="img/products/bat-deye-lv.svg" alt="Baterias LiFePO4">
+                    <img id="img-bat-thumb" src="img/products/bat-deye.jpg" alt="Baterias LiFePO4">
                   </div>
                   <div class="selector-card-inputs">
                     <select id="select-battery" onchange="onSelectProduct('battery', this.value)"></select>
@@ -256,12 +253,7 @@
             <div>Esta potência ultrapassa o patamar residencial típico. O sistema requer projeto industrial de engenharia e vistoria presencial da LECASU.</div>
           </div>
 
-          <details>
-            <summary>Como calculamos esta estimativa técnica?</summary>
-            <p><strong>Recurso Solar Moçambique:</strong> 4,8 Horas de Sol Pleno (HSP) com rendimento global de 76% (PR), dimensionando a quantidade de módulos com base na potência individual do modelo selecionado.</p>
-            <p><strong>Inversor Híbrido:</strong> Soma das potências activadas com 25% de margem para picos de arranque de motores e compressores.</p>
-            <p><strong>Armazenamento LiFePO4:</strong> 90% de profundidade de descarga (DoD) e 92% de eficiência de ciclo em módulos padronizados com base na capacidade unitária do modelo selecionado.</p>
-          </details>
+          <div class="cta-box">
 
           <!-- Botões de Ação Imediata (WhatsApp, E-mail, Copiar, Imprimir) -->
           <div class="action-buttons-group">
@@ -287,7 +279,7 @@
               </button>
             </div>
             
-            <span id="copy-feedback" class="small" style="text-align: center; color: var(--orange-hover); font-weight: 600;" hidden>✓ Resumo copiado para a área de transferência!</span>
+            <span id="copy-feedback" class="small" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center; color: var(--orange-hover); font-weight: 600;" hidden><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Resumo copiado para a área de transferência!</span>
           </div>
 
           <!-- DOCUMENTO FORMAL A4 EXCLUSIVO PARA IMPRESSÃO -->
@@ -342,7 +334,7 @@
               <div><strong>Geração Estimada:</strong> <span id="print-gen-monthly">0 kWh/mês</span></div>
               <div><strong>Poupança Estimada EDM:</strong> <span id="print-savings-monthly">0 MT/mês</span></div>
               <div><strong>Emissões Evitadas:</strong> <span id="print-co2">0 ton CO₂/ano</span></div>
-              <div><strong>Fator Solar (HSP):</strong> <span>4.8 HSP · PR 76%</span></div>
+              <div><strong>Autonomia Solicitada:</strong> <span id="print-client-autonomy">12h</span></div>
             </div>
 
             <!-- Orçamento Estimado -->
@@ -595,7 +587,7 @@
     </div>
   </div>
 
-  <script src="shared-catalog.js?v=20261113_05"></script>
-  <script src="app.js?v=20261113_05"></script>
+  <script src="shared-catalog.js?v=20261113_06"></script>
+  <script src="app.js?v=20261113_06"></script>
 </body>
 </html>

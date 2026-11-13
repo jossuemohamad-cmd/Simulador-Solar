@@ -220,13 +220,13 @@ function sanitizeProductImage(rawImage, fallback) {
   if (clean.startsWith('data:image/') && !/[<>"']/.test(clean)) {
     return clean;
   }
-  if (/^img\/products\/[a-zA-Z0-9._-]+\.(svg|png|jpe?g|webp)$/i.test(clean)) {
+  if (/^img\/products\/[a-zA-Z0-9._-]+\.(png|jpe?g|webp)$/i.test(clean)) {
     return clean;
   }
   if (/^https?:\/\/[^\s"'<>]+$/i.test(clean)) {
     return clean;
   }
-  return fallback || 'img/products/panel-jinko.svg';
+  return fallback || 'img/products/panel-jinko.png';
 }
 
 function sanitizeProductList(category, list) {
@@ -236,18 +236,22 @@ function sanitizeProductList(category, list) {
   for (const raw of list) {
     if (!raw || typeof raw !== 'object') return null;
     const id = String(raw.id || '').trim().slice(0, 80);
-    const name = String(raw.name || '').trim().slice(0, 120);
+    const name = String(raw.name || '').trim().slice(0, 140);
     const price = Number(raw.price);
     if (!id || !name || !Number.isFinite(price) || price <= 0) return null;
 
     const brand = String(raw.brand || 'Outro').trim().slice(0, 60);
     const extra = String(raw.extra || '').trim().slice(0, 140);
     const sku = raw.sku ? String(raw.sku).trim().slice(0, 80) : undefined;
+    const categoryGroup = raw.categoryGroup ? String(raw.categoryGroup).trim().slice(0, 100) : undefined;
+    const nominalVoltage = raw.nominalVoltage ? String(raw.nominalVoltage).trim().slice(0, 80) : undefined;
     const item = {
       id,
       ...(sku ? { sku } : {}),
       name,
+      ...(categoryGroup ? { categoryGroup } : {}),
       brand,
+      ...(nominalVoltage ? { nominalVoltage } : {}),
       price,
       extra,
       image: sanitizeProductImage(raw.image)
@@ -257,15 +261,7 @@ function sanitizeProductList(category, list) {
       const power = Number(raw.power);
       if (!Number.isFinite(power) || power <= 0) return null;
       item.power = Math.round(power);
-      if (raw.series) item.series = String(raw.series).slice(0, 60);
       if (raw.panelType) item.panelType = String(raw.panelType).slice(0, 40);
-      if (raw.cellTech) item.cellTech = String(raw.cellTech).slice(0, 80);
-      if (raw.cells) item.cells = String(raw.cells).slice(0, 40);
-      if (raw.efficiency) item.efficiency = String(raw.efficiency).slice(0, 20);
-      if (raw.vMax) item.vMax = String(raw.vMax).slice(0, 20);
-      if (raw.dimensions) item.dimensions = String(raw.dimensions).slice(0, 50);
-      if (raw.weight) item.weight = String(raw.weight).slice(0, 20);
-      if (raw.warranty) item.warranty = String(raw.warranty).slice(0, 60);
     } else if (category === 'inverters') {
       const power = Number(raw.power);
       if (!Number.isFinite(power) || power <= 0) return null;
@@ -282,9 +278,7 @@ function sanitizeProductList(category, list) {
 
     if (!raw.image) {
       delete item.image;
-    } else if (item.image === 'img/products/panel-jinko.svg') {
-      // Se o sanitizador retornou o fallback padrão mas raw.image tinha dados,
-      // significa que a imagem era inválida — remover para usar o fallback automático
+    } else if (item.image === 'img/products/panel-jinko.png' && !String(raw.image).includes('panel-jinko.png')) {
       delete item.image;
     }
     cleanList.push(item);
@@ -394,8 +388,14 @@ function createAppHandler(options = {}) {
     if (db.isConfigured()) {
       const dbCat = await db.loadCatalog();
       if (dbCat) {
+        const beforeSnap = JSON.stringify(dbCat);
         stripLegacyObsoleteProducts(dbCat);
+        const migrated = ensureProductImages(dbCat) || JSON.stringify(dbCat) !== beforeSnap;
         memoryCatalog = dbCat;
+        if (migrated) {
+          await db.saveCatalog(dbCat);
+          writeJsonAtomic(CATALOG_FILE, dbCat);
+        }
         return dbCat;
       }
     }

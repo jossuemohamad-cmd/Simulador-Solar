@@ -6,3 +6,4 @@ const serverApp = require('./backend/server-app.js');
 
 const port = process.env.PORT || 5500;
 serverApp.startServer(port);
+
