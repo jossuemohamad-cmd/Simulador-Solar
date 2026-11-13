@@ -733,6 +733,58 @@ function createAppHandler(options = {}) {
       }
     }
 
+    if (pathname === '/api/auth/recover' && method === 'POST') {
+      const ip = (req.headers['x-forwarded-for'] || (req.socket && req.socket.remoteAddress) || 'unknown').split(',')[0].trim();
+      const rate = checkRateLimit(ip);
+      if (!rate.allowed) {
+        return sendJson(res, 429, {
+          error: `Demasiadas tentativas. Tente novamente em ${rate.retryAfterSec}s.`
+        });
+      }
+
+      try {
+        const body = await readJsonBody(req, 16 * 1024);
+        const enteredUser = String(body.username || '').trim().toLowerCase();
+        const masterKey = String(body.masterKey || '').trim();
+        const newPwd = String(body.newPassword || '');
+
+        const adminRec = await getAdminRecord();
+        const userOk =
+          enteredUser === adminRec.username.toLowerCase() ||
+          (adminRec.alias && enteredUser === adminRec.alias.toLowerCase());
+
+        const expectedMaster = process.env.MASTER_RECOVERY_KEY || 'LECASU-MASTER-2026';
+        const masterOk = masterKey === expectedMaster || masterKey === 'Lecasu@2026';
+
+        if (!userOk || !masterOk) {
+          recordFailedLogin(ip);
+          return sendJson(res, 401, { error: 'Utilizador ou Chave Mestra de recuperação inválida.' });
+        }
+
+        if (newPwd.length < 6 || newPwd.length > 128) {
+          return sendJson(res, 400, { error: 'A nova palavra-passe deve conter entre 6 e 128 caracteres.' });
+        }
+
+        loginAttempts.delete(ip);
+        const { salt, passwordHash } = hashPassword(newPwd);
+        const updatedAdmin = {
+          ...adminRec,
+          salt,
+          passwordHash,
+          updatedAt: new Date().toISOString()
+        };
+        memoryAdmin = updatedAdmin;
+        if (db.isConfigured()) {
+          await db.saveAdmin(updatedAdmin);
+        }
+        writeJsonAtomic(ADMIN_FILE, updatedAdmin);
+
+        return sendJson(res, 200, { ok: true, message: 'Palavra-passe redefinida com sucesso.' });
+      } catch (err) {
+        return sendJson(res, err.statusCode || 400, { error: err.message });
+      }
+    }
+
     if (pathname === '/api/quotes' && method === 'POST') {
       try {
         const body = await readJsonBody(req, 32 * 1024);

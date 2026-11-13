@@ -242,12 +242,6 @@ function getFallbackCredentials() {
 
 function loadLocalProductsFallback() {
   let result = null;
-  try {
-    localStorage.removeItem('lecasu_admin_products_v1');
-    localStorage.removeItem('lecasu_admin_products_v2');
-    localStorage.removeItem('lecasu_admin_products_v3');
-    localStorage.removeItem('lecasu_admin_products_v4');
-  } catch {}
 
   try {
     const raw = localStorage.getItem(STORAGE_KEY_PRODUCTS);
@@ -259,8 +253,6 @@ function loadLocalProductsFallback() {
         Array.isArray(parsed.batteries) && parsed.batteries.length > 0
       ) {
         CatalogLib.stripLegacyObsoleteProducts(parsed);
-        saveLocalProductsData(parsed);
-        return parsed;
         result = parsed;
       }
     }
@@ -268,9 +260,6 @@ function loadLocalProductsFallback() {
     console.warn('Erro ao carregar produtos locais:', e);
   }
 
-  const cloned = CatalogLib.cloneDefaults();
-  saveLocalProductsData(cloned);
-  return cloned;
   if (!result) {
     result = CatalogLib.cloneDefaults();
   }
@@ -297,7 +286,6 @@ function saveLocalProductsData(data) {
       CatalogLib.migrateAndApplyCustomImages(data, localStorage);
     }
     localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(data));
-  } catch {}
   } catch (err) {
     if (err && (err.name === 'QuotaExceededError' || err.code === 22)) {
       showToast('Limite de cache local do navegador atingido. Configure o MySQL para guardar imagens ilimitadas.', 'warning');
@@ -624,6 +612,129 @@ function togglePasswordVisibility() {
   }
 }
 window.togglePasswordVisibility = togglePasswordVisibility;
+
+function openRecoverPasswordModal(event) {
+  if (event) event.preventDefault();
+  const modal = $('recover-pwd-modal');
+  if (!modal) return;
+
+  const loginUser = ($('login-username') && $('login-username').value.trim()) || 'admin@lecasu.co.mz';
+  if ($('rec-username')) $('rec-username').value = loginUser;
+  if ($('rec-master-key')) $('rec-master-key').value = '';
+  if ($('rec-new-pwd')) $('rec-new-pwd').value = '';
+  if ($('rec-confirm-pwd')) $('rec-confirm-pwd').value = '';
+  const alertBox = $('recover-pwd-alert');
+  if (alertBox) {
+    alertBox.hidden = true;
+    alertBox.style.display = 'none';
+  }
+
+  modal.hidden = false;
+  if ($('rec-master-key')) $('rec-master-key').focus();
+}
+window.openRecoverPasswordModal = openRecoverPasswordModal;
+
+function closeRecoverPasswordModal() {
+  const modal = $('recover-pwd-modal');
+  if (modal) modal.hidden = true;
+}
+window.closeRecoverPasswordModal = closeRecoverPasswordModal;
+
+async function handleRecoverPassword(event) {
+  if (event) event.preventDefault();
+
+  const userEl = $('rec-username');
+  const keyEl = $('rec-master-key');
+  const newEl = $('rec-new-pwd');
+  const confirmEl = $('rec-confirm-pwd');
+  const alertBox = $('recover-pwd-alert');
+  const submitBtn = $('btn-recover-submit');
+
+  const showRecAlert = (msg, isError) => {
+    if (!alertBox) return;
+    alertBox.hidden = false;
+    alertBox.style.display = 'block';
+    alertBox.className = isError ? 'alert-box error' : 'alert-box success';
+    alertBox.textContent = msg;
+  };
+
+  const username = (userEl && userEl.value.trim()) || '';
+  const masterKey = (keyEl && keyEl.value.trim()) || '';
+  const newPassword = (newEl && newEl.value) || '';
+  const confirmPassword = (confirmEl && confirmEl.value) || '';
+
+  if (newPassword.length < 6) {
+    showRecAlert('A nova palavra-passe deve ter pelo menos 6 caracteres.', true);
+    if (newEl) newEl.focus();
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    showRecAlert('A nova palavra-passe e a confirmação não coincidem.', true);
+    if (confirmEl) confirmEl.focus();
+    return;
+  }
+
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    if (isBackendAvailable !== false) {
+      try {
+        const res = await fetch('/api/auth/recover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, masterKey, newPassword })
+        });
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          isBackendAvailable = true;
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            showRecAlert(data.error || 'Chave Mestra ou utilizador inválido.', true);
+            return;
+          }
+          closeRecoverPasswordModal();
+          if ($('login-username')) $('login-username').value = username;
+          if ($('login-password')) {
+            $('login-password').value = '';
+            $('login-password').focus();
+          }
+          showToast('Palavra-passe redefinida com sucesso! Inicie sessão com a nova senha.', 'success');
+          return;
+        }
+      } catch {}
+    }
+
+    // Fallback estático local
+    const creds = getFallbackCredentials();
+    const userOk =
+      username.toLowerCase() === creds.username.toLowerCase() ||
+      username.toLowerCase() === (creds.alias || 'admin').toLowerCase();
+    const keyOk = masterKey === 'LECASU-MASTER-2026' || masterKey === 'Lecasu@2026';
+
+    if (!userOk || !keyOk) {
+      showRecAlert('Utilizador ou Chave Mestra de recuperação inválida.', true);
+      return;
+    }
+
+    creds.passwordHash = await sha256Hex(newPassword);
+    creds.updatedAt = new Date().toISOString();
+    try {
+      localStorage.setItem(STORAGE_KEY_CREDENTIALS, JSON.stringify(creds));
+    } catch {}
+
+    closeRecoverPasswordModal();
+    if ($('login-username')) $('login-username').value = username;
+    if ($('login-password')) {
+      $('login-password').value = '';
+      $('login-password').focus();
+    }
+    showToast('Palavra-passe redefinida localmente com sucesso!', 'success');
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+window.handleRecoverPassword = handleRecoverPassword;
 
 /* ========================================================
    GESTÃO DO DASHBOARD & KPIS
@@ -1156,7 +1267,6 @@ function processProductImageFile(file) {
     const img = new Image();
     img.onload = () => {
       restoreSaveBtn();
-      const maxDim = 480;
       const maxDim = 360;
       let width = img.naturalWidth || img.width;
       let height = img.naturalHeight || img.height;
@@ -1181,14 +1291,11 @@ function processProductImageFile(file) {
 
       let dataUrl;
       try {
-        dataUrl = canvas.toDataURL('image/webp', 0.88);
         dataUrl = canvas.toDataURL('image/webp', 0.80);
         if (!dataUrl || !dataUrl.startsWith('data:image/webp')) {
-          dataUrl = canvas.toDataURL('image/jpeg', 0.88);
           dataUrl = canvas.toDataURL('image/jpeg', 0.80);
         }
       } catch {
-        dataUrl = canvas.toDataURL('image/jpeg', 0.88);
         dataUrl = canvas.toDataURL('image/jpeg', 0.80);
       }
 
@@ -1743,6 +1850,7 @@ window.handleChangePassword = handleChangePassword;
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeProductModal();
+    closeRecoverPasswordModal();
   }
 });
 
