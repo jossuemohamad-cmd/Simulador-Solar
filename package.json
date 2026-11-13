@@ -16,5 +16,8 @@
     "mozambique"
   ],
   "author": "LECASU LDA",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "mysql2": "^3.24.6"
+  }
 }

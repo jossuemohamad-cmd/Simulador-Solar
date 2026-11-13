@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
+const db = require('./db.js');
 const {
   cloneDefaults,
   ensureProductImages,
@@ -241,8 +242,10 @@ function sanitizeProductList(category, list) {
 
     const brand = String(raw.brand || 'Outro').trim().slice(0, 60);
     const extra = String(raw.extra || '').trim().slice(0, 140);
+    const sku = raw.sku ? String(raw.sku).trim().slice(0, 80) : undefined;
     const item = {
       id,
+      ...(sku ? { sku } : {}),
       name,
       brand,
       price,
@@ -331,8 +334,17 @@ function createAppHandler(options = {}) {
 
   const SESSION_SECRET = getSessionSecret();
 
-  function getAdminRecord() {
+  async function getAdminRecord() {
     if (memoryAdmin) return memoryAdmin;
+
+    if (db.isConfigured()) {
+      const dbAdmin = await db.loadAdmin();
+      if (dbAdmin && dbAdmin.username && dbAdmin.salt && dbAdmin.passwordHash) {
+        memoryAdmin = dbAdmin;
+        return dbAdmin;
+      }
+    }
+
     try {
       const pathsToCheck = [ADMIN_FILE, path.join(ROOT, 'data', 'admin.json')];
       for (const p of pathsToCheck) {
@@ -340,6 +352,7 @@ function createAppHandler(options = {}) {
           const parsed = JSON.parse(fs.readFileSync(p, 'utf8'));
           if (parsed && parsed.username && parsed.salt && parsed.passwordHash) {
             memoryAdmin = parsed;
+            if (db.isConfigured()) await db.saveAdmin(parsed);
             return parsed;
           }
         }
@@ -358,11 +371,21 @@ function createAppHandler(options = {}) {
       updatedAt: 'initial'
     };
     memoryAdmin = initial;
+    if (db.isConfigured()) await db.saveAdmin(initial);
     writeJsonAtomic(ADMIN_FILE, initial);
     return initial;
   }
 
-  function getCatalog() {
+  async function getCatalog() {
+    if (db.isConfigured()) {
+      const dbCat = await db.loadCatalog();
+      if (dbCat) {
+        stripLegacyObsoleteProducts(dbCat);
+        memoryCatalog = dbCat;
+        return dbCat;
+      }
+    }
+
     try {
       const pathsToCheck = [CATALOG_FILE, path.join(ROOT, 'data', 'catalog.json')];
       for (const p of pathsToCheck) {
@@ -376,6 +399,7 @@ function createAppHandler(options = {}) {
           ) {
             stripLegacyObsoleteProducts(parsed);
             memoryCatalog = parsed;
+            if (db.isConfigured()) await db.saveCatalog(parsed);
             return parsed;
           }
         }
@@ -389,11 +413,12 @@ function createAppHandler(options = {}) {
     const seeded = cloneDefaults();
     seeded.updatedAt = new Date().toISOString();
     memoryCatalog = seeded;
+    if (db.isConfigured()) await db.saveCatalog(seeded);
     writeJsonAtomic(CATALOG_FILE, seeded);
     return seeded;
   }
 
-  function saveCatalogToDisk(payload) {
+  async function saveCatalogToDisk(payload) {
     const panels = sanitizeProductList('panels', payload.panels);
     const inverters = sanitizeProductList('inverters', payload.inverters);
     const batteries = sanitizeProductList('batteries', payload.batteries);
@@ -408,6 +433,9 @@ function createAppHandler(options = {}) {
     };
     ensureProductImages(cleanCatalog);
     memoryCatalog = cleanCatalog;
+    if (db.isConfigured()) {
+      await db.saveCatalog(cleanCatalog);
+    }
     writeJsonAtomic(CATALOG_FILE, cleanCatalog);
     return cleanCatalog;
   }
@@ -468,9 +496,9 @@ function createAppHandler(options = {}) {
     return parts.join('; ');
   }
 
-  function getAuthenticatedAdmin(req) {
+  async function getAuthenticatedAdmin(req) {
     const cookies = parseCookies(req.headers.cookie);
-    const adminRec = getAdminRecord();
+    const adminRec = await getAdminRecord();
     const session = verifySessionToken(cookies.lecasu_session, adminRec);
     return session ? { session, adminRec } : null;
   }
@@ -563,7 +591,14 @@ function createAppHandler(options = {}) {
     }
 
     if (pathname === '/health' && (method === 'GET' || method === 'HEAD')) {
-      const payload = { ok: true, status: 'healthy', service: 'lecasu-simulador-solar', timestamp: new Date().toISOString() };
+      const payload = {
+        ok: true,
+        status: 'healthy',
+        service: 'lecasu-simulador-solar',
+        storageMode: db.isConfigured() ? 'mysql' : 'json-file',
+        mysql: db.getStatus(),
+        timestamp: new Date().toISOString()
+      };
       const body = Buffer.from(JSON.stringify(payload), 'utf8');
       res.writeHead(200, {
         ...SECURITY_HEADERS,
@@ -576,15 +611,16 @@ function createAppHandler(options = {}) {
     }
 
     if (pathname === '/api/products' && method === 'GET') {
-      return sendJson(res, 200, getCatalog());
+      const catalog = await getCatalog();
+      return sendJson(res, 200, catalog);
     }
 
     if (pathname === '/api/products' && method === 'PUT') {
-      const auth = getAuthenticatedAdmin(req);
+      const auth = await getAuthenticatedAdmin(req);
       if (!auth) return sendJson(res, 401, { error: 'Sessão expirada ou não autenticada.' });
       try {
         const body = await readJsonBody(req, 50 * 1024 * 1024); // 50 MB para suportar fotos Base64
-        const saved = saveCatalogToDisk(body);
+        const saved = await saveCatalogToDisk(body);
         if (!saved) {
           return sendJson(res, 400, { error: 'Estrutura de catálogo inválida ou categoria vazia.' });
         }
@@ -595,17 +631,20 @@ function createAppHandler(options = {}) {
     }
 
     if (pathname === '/api/products/reset' && method === 'POST') {
-      const auth = getAuthenticatedAdmin(req);
+      const auth = await getAuthenticatedAdmin(req);
       if (!auth) return sendJson(res, 401, { error: 'Sessão expirada ou não autenticada.' });
       const reset = cloneDefaults();
       reset.updatedAt = new Date().toISOString();
       memoryCatalog = reset;
+      if (db.isConfigured()) {
+        await db.saveCatalog(reset);
+      }
       writeJsonAtomic(CATALOG_FILE, reset);
       return sendJson(res, 200, { ok: true, catalog: reset });
     }
 
     if (pathname === '/api/auth/me' && method === 'GET') {
-      const auth = getAuthenticatedAdmin(req);
+      const auth = await getAuthenticatedAdmin(req);
       if (!auth) return sendJson(res, 401, { authenticated: false });
       return sendJson(res, 200, {
         authenticated: true,
@@ -628,7 +667,7 @@ function createAppHandler(options = {}) {
         const enteredPwd = String(body.password || '');
         const remember = Boolean(body.remember);
 
-        const adminRec = getAdminRecord();
+        const adminRec = await getAdminRecord();
         const userOk =
           enteredUser === adminRec.username.toLowerCase() ||
           (adminRec.alias && enteredUser === adminRec.alias.toLowerCase());
@@ -659,7 +698,7 @@ function createAppHandler(options = {}) {
     }
 
     if (pathname === '/api/auth/password' && method === 'POST') {
-      const auth = getAuthenticatedAdmin(req);
+      const auth = await getAuthenticatedAdmin(req);
       if (!auth) return sendJson(res, 401, { error: 'Sessão expirada ou não autenticada.' });
       try {
         const body = await readJsonBody(req, 16 * 1024);
@@ -681,6 +720,9 @@ function createAppHandler(options = {}) {
           updatedAt: new Date().toISOString()
         };
         memoryAdmin = updatedAdmin;
+        if (db.isConfigured()) {
+          await db.saveAdmin(updatedAdmin);
+        }
         writeJsonAtomic(ADMIN_FILE, updatedAdmin);
 
         const refreshedToken = signSessionToken(updatedAdmin, true);
@@ -709,6 +751,9 @@ function createAppHandler(options = {}) {
           channel: String(body.channel || 'web').slice(0, 24),
           createdAt: new Date().toISOString()
         };
+        if (db.isConfigured()) {
+          await db.insertQuote(entry);
+        }
         let quotes = Array.isArray(memoryQuotes) ? [...memoryQuotes] : [];
         if (fs.existsSync(QUOTES_FILE)) {
           try {
@@ -727,8 +772,14 @@ function createAppHandler(options = {}) {
     }
 
     if (pathname === '/api/quotes' && method === 'GET') {
-      const auth = getAuthenticatedAdmin(req);
+      const auth = await getAuthenticatedAdmin(req);
       if (!auth) return sendJson(res, 401, { error: 'Sessão expirada ou não autenticada.' });
+      if (db.isConfigured()) {
+        const dbQuotes = await db.loadQuotes();
+        if (Array.isArray(dbQuotes)) {
+          return sendJson(res, 200, { quotes: dbQuotes });
+        }
+      }
       let quotes = Array.isArray(memoryQuotes) ? memoryQuotes : [];
       if (fs.existsSync(QUOTES_FILE)) {
         try {
