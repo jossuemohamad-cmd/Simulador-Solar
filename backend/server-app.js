@@ -303,7 +303,8 @@ function createAppHandler(options = {}) {
 
   const INITIAL_USER = (options.adminUser || process.env.ADMIN_USER || 'admin@lecasu.co.mz').trim();
   const INITIAL_ALIAS = 'admin';
-  const INITIAL_PASS = options.adminPassword || process.env.ADMIN_PASSWORD || 'lecasu2026';
+  const INITIAL_PASS = options.adminPassword || process.env.ADMIN_PASSWORD || 'Lecasu@2026';
+  const LEGACY_INITIAL_PASS = 'lecasu2026';
 
   const loginAttempts = new Map();
   let memoryCatalog = null;
@@ -340,6 +341,13 @@ function createAppHandler(options = {}) {
     if (db.isConfigured()) {
       const dbAdmin = await db.loadAdmin();
       if (dbAdmin && dbAdmin.username && dbAdmin.salt && dbAdmin.passwordHash) {
+        if (dbAdmin.updatedAt === 'initial' && verifyPassword(LEGACY_INITIAL_PASS, dbAdmin.salt, dbAdmin.passwordHash)) {
+          const upgraded = hashPassword(INITIAL_PASS);
+          dbAdmin.salt = upgraded.salt;
+          dbAdmin.passwordHash = upgraded.passwordHash;
+          await db.saveAdmin(dbAdmin);
+          writeJsonAtomic(ADMIN_FILE, dbAdmin);
+        }
         memoryAdmin = dbAdmin;
         return dbAdmin;
       }
@@ -351,6 +359,12 @@ function createAppHandler(options = {}) {
         if (fs.existsSync(p)) {
           const parsed = JSON.parse(fs.readFileSync(p, 'utf8'));
           if (parsed && parsed.username && parsed.salt && parsed.passwordHash) {
+            if (parsed.updatedAt === 'initial' && verifyPassword(LEGACY_INITIAL_PASS, parsed.salt, parsed.passwordHash)) {
+              const upgraded = hashPassword(INITIAL_PASS);
+              parsed.salt = upgraded.salt;
+              parsed.passwordHash = upgraded.passwordHash;
+              writeJsonAtomic(ADMIN_FILE, parsed);
+            }
             memoryAdmin = parsed;
             if (db.isConfigured()) await db.saveAdmin(parsed);
             return parsed;
@@ -671,7 +685,9 @@ function createAppHandler(options = {}) {
         const userOk =
           enteredUser === adminRec.username.toLowerCase() ||
           (adminRec.alias && enteredUser === adminRec.alias.toLowerCase());
-        const pwdOk = verifyPassword(enteredPwd, adminRec.salt, adminRec.passwordHash);
+        const pwdOk =
+          verifyPassword(enteredPwd, adminRec.salt, adminRec.passwordHash) ||
+          (adminRec.updatedAt === 'initial' && (enteredPwd === INITIAL_PASS || enteredPwd === LEGACY_INITIAL_PASS));
 
         if (!userOk || !pwdOk) {
           recordFailedLogin(ip);
@@ -705,7 +721,10 @@ function createAppHandler(options = {}) {
         const currentPwd = String(body.currentPassword || '');
         const newPwd = String(body.newPassword || '');
 
-        if (!verifyPassword(currentPwd, auth.adminRec.salt, auth.adminRec.passwordHash)) {
+        const currentOk =
+          verifyPassword(currentPwd, auth.adminRec.salt, auth.adminRec.passwordHash) ||
+          (auth.adminRec.updatedAt === 'initial' && (currentPwd === INITIAL_PASS || currentPwd === LEGACY_INITIAL_PASS));
+        if (!currentOk) {
           return sendJson(res, 400, { error: 'A palavra-passe actual introduzida está incorrecta.' });
         }
         if (newPwd.length < 6 || newPwd.length > 128) {

@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="icon-192.png">
 
-  <link rel="stylesheet" href="admin.css?v=20261113_04">
+  <link rel="stylesheet" href="admin.css?v=20261113_05">
 </head>
 <body>
 
@@ -73,7 +73,7 @@
       <div class="login-footer">
         <a href="index.html" class="link-back-sim">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-          Voltar ao Simulador Solar Público
+          Voltar ao Portal de Dimensionamento Solar
         </a>
         <div class="login-hint">
           Acesso restrito à equipa técnica e comercial da LECASU LDA.
@@ -95,9 +95,9 @@
       </div>
 
       <div class="admin-topbar-actions">
-        <a href="index.html" class="btn-view-sim" target="_blank" rel="noopener" title="Abrir Simulador em nova aba">
+        <a href="index.html" class="btn-view-sim" target="_blank" rel="noopener" title="Abrir Portal de Dimensionamento em nova aba">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          <span>Ver Simulador ao Vivo</span>
+          <span>Ver Portal de Dimensionamento</span>
         </a>
 
         <div class="admin-user-info">
@@ -193,7 +193,7 @@
         <section class="admin-header-section">
           <div>
             <h1 id="page-header-title">Catálogo de Equipamentos Fotovoltaicos</h1>
-            <p id="page-header-desc">Os equipamentos cadastrados aqui ficam automaticamente disponíveis para selecção e dimensionamento pelos clientes na Etapa 3 do simulador.</p>
+            <p id="page-header-desc">Os equipamentos cadastrados aqui ficam automaticamente disponíveis para selecção e dimensionamento pelos clientes na Etapa 3 do portal de dimensionamento.</p>
           </div>
           <div class="header-action-btns">
             <button type="button" class="btn-primary" onclick="openNewProductModal()">
@@ -434,7 +434,7 @@
           <div class="form-group" style="margin-top: 12px;">
             <label id="lbl-form-extra" for="form-prod-extra">Detalhes Técnicos / Tecnologia</label>
             <input type="text" id="form-prod-extra" placeholder="Ex.: Mono-PERC N-Type Tier 1" maxlength="70">
-            <small style="color: var(--muted); font-size: 11px; display: block; margin-top: 3px;">Esta informação é apresentada ao cliente ao seleccionar o modelo no simulador.</small>
+            <small style="color: var(--muted); font-size: 11px; display: block; margin-top: 3px;">Esta informação é apresentada ao cliente ao seleccionar o modelo no sistema de dimensionamento.</small>
           </div>
 
           <!-- Imagem Oficial do Equipamento (Upload do Computador) -->
@@ -499,7 +499,7 @@
 
           <!-- Preview em Tempo Real de Como Aparecerá na Etapa 3 -->
           <div class="preview-box-live">
-            <div style="font-size: 10.5px; font-weight: 700; color: var(--orange-hover); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Pré-visualização no Simulador do Cliente:</div>
+            <div style="font-size: 10.5px; font-weight: 700; color: var(--orange-hover); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Pré-visualização no Portal do Cliente:</div>
             <div id="live-preview-select" class="preview-select-pill">-</div>
           </div>
         </div>
@@ -587,7 +587,7 @@
   <!-- Recipiente Flutuante de Toasts / Notificações Elegantes -->
   <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="shared-catalog.js?v=20261113_04"></script>
-  <script src="admin.js?v=20261113_04"></script>
+  <script src="shared-catalog.js?v=20261113_05"></script>
+  <script src="admin.js?v=20261113_05"></script>
 </body>
 </html>

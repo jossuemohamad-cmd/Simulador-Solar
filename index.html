@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Simulador Solar Fotovoltaico | LECASU Moçambique</title>
+  <title>Dimensionamento e Cotação Solar | LECASU Moçambique</title>
   <meta name="description" content="Dimensione o seu sistema solar fotovoltaico com inversores híbridos e baterias de lítio LiFePO4 para residências e comércios em Moçambique.">
   <meta name="author" content="LECASU LDA">
   <meta name="robots" content="index, follow">
 
   <!-- Open Graph / Redes Sociais -->
-  <meta property="og:title" content="Simulador Solar Fotovoltaico | LECASU Moçambique">
+  <meta property="og:title" content="Dimensionamento e Cotação Solar | LECASU Moçambique">
   <meta property="og:description" content="Calcule a potência, número de painéis e autonomia de baterias para a sua instalação solar em Moçambique.">
   <meta property="og:image" content="logo.png">
   <meta property="og:type" content="website">
@@ -31,17 +31,17 @@
     <header class="top-bar">
       <div class="brand-badge">
         <img src="logo.png" alt="Lecasu - Energy and Engineering Solutions" class="brand-logo-img">
-        <span class="tag">Simulador Solar</span>
+        <span class="tag">Dimensionamento Solar</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
-        <nav class="steps-nav" aria-label="Progresso da simulação">
+        <nav class="steps-nav" aria-label="Progresso do dimensionamento">
           <button type="button" id="s0" class="step-pill active" onclick="tryGo(0)">01 · Aparelhos</button>
           <button type="button" id="s1" class="step-pill" onclick="tryGo(1)">02 · Perfil & Autonomia</button>
-          <button type="button" id="s2" class="step-pill" onclick="tryGo(2)">03 · Estimativa do Sistema</button>
+          <button type="button" id="s2" class="step-pill" onclick="tryGo(2)">03 · Dimensionamento & Proposta</button>
         </nav>
-        <button type="button" class="btn-reset-sim" onclick="resetSimulation()" title="Limpar e Iniciar Nova Simulação">
+        <button type="button" class="btn-reset-sim" onclick="resetSimulation()" title="Limpar e Iniciar Novo Dimensionamento">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-          <span class="reset-text">Nova Simulação</span>
+          <span class="reset-text">Novo Dimensionamento</span>
         </button>
       </div>
     </header>
@@ -237,8 +237,8 @@
             </div>
           </div>
 
-          <!-- Tabela de Orçamento Ilustrativo -->
-          <h3>Orçamento preliminar detalhado · MZN</h3>
+          <!-- Tabela de Orçamento Técnico e Comercial -->
+          <h3>Orçamento técnico e comercial detalhado · MZN</h3>
           <table>
             <thead>
               <tr>
@@ -346,12 +346,12 @@
             </div>
 
             <!-- Orçamento Estimado -->
-            <div style="margin-top: 14px; margin-bottom: 6px; font-weight: bold; font-size: 10pt; color: #ed6c24;">2. INVESTIMENTO ILUSTRATIVO PRELIMINAR</div>
+            <div style="margin-top: 14px; margin-bottom: 6px; font-weight: bold; font-size: 10pt; color: #ed6c24;">2. ORÇAMENTO TÉCNICO E COMERCIAL</div>
             <table style="width: 100%;">
               <thead>
                 <tr style="background: #f0f3ee;">
                   <th>Item / Equipamento Selecionado</th>
-                  <th style="text-align: right;">Valor Ilustrativo (MZN)</th>
+                  <th style="text-align: right;">Valor Orçamentado (MZN)</th>
                 </tr>
               </thead>
               <tbody id="print-quote-tbody"></tbody>
@@ -390,7 +390,7 @@
               Voltar
             </button>
             <button type="button" class="btn btn-primary" onclick="go(2)">
-              Ver estimativa do sistema
+              Calcular Dimensionamento e Proposta
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
           </div>
@@ -595,7 +595,7 @@
     </div>
   </div>
 
-  <script src="shared-catalog.js?v=20261113_04"></script>
-  <script src="app.js?v=20261113_04"></script>
+  <script src="shared-catalog.js?v=20261113_05"></script>
+  <script src="app.js?v=20261113_05"></script>
 </body>
 </html>

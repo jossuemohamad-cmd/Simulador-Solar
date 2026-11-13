@@ -1,7 +1,7 @@
 {
-  "name": "LECASU — Simulador Solar Fotovoltaico",
+  "name": "LECASU — Dimensionamento e Cotação Solar",
   "short_name": "LECASU Solar",
-  "description": "Simulador de dimensionamento solar e baterias para residências e comércios em Moçambique.",
+  "description": "Sistema de dimensionamento e orçamentação solar fotovoltaica para residências e empresas em Moçambique.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

@@ -249,7 +249,7 @@ function loadSimulationSession() {
 
 function resetSimulation() {
   if (chosen.size > 0 || ($('client-name') && $('client-name').value.trim())) {
-    if (!confirm('Deseja iniciar uma Nova Simulação e limpar todos os aparelhos e dados preenchidos?')) {
+    if (!confirm('Deseja iniciar um Novo Dimensionamento e limpar todos os aparelhos e dados preenchidos?')) {
       return;
     }
   }
@@ -1396,7 +1396,7 @@ function buildQuoteSummaryText(r, clientName, clientPhone, location, projType, b
     .join('\n');
 
   return [
-    '☀️ *PROPOSTA SOLAR PRELIMINAR — LECASU*',
+    '☀️ *PROPOSTA TÉCNICA E COMERCIAL SOLAR — LECASU*',
     '------------------------------------------',
     `👤 *Cliente:* ${clientName}`,
     `📱 *Contacto:* ${clientPhone}`,

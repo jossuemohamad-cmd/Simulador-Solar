@@ -11,7 +11,8 @@ const STORAGE_KEY_CREDENTIALS = 'lecasu_admin_credentials_v2';
 const LEGACY_STORAGE_KEY_CREDENTIALS = 'lecasu_admin_credentials';
 
 // Hash SHA-256 apenas para fallback offline/estático (nunca expõe texto limpo)
-const DEFAULT_FALLBACK_HASH = '56c3131214fb7fe070884f793628b64eaa545e0b0a3581a51f2afdd07cfb82f5';
+const DEFAULT_FALLBACK_HASH = 'ff58ef9f4a4a3e25620f5a36b3a406c86e01f308e8386acba229c6b48798ea16';
+const LEGACY_FALLBACK_HASH = '56c3131214fb7fe070884f793628b64eaa545e0b0a3581a51f2afdd07cfb82f5';
 
 const getProductImage = CatalogLib.getProductImage;
 const ensureProductImages = CatalogLib.ensureProductImages;
@@ -544,7 +545,10 @@ async function handleLogin(event) {
     const isUserMatch =
       enteredUser.toLowerCase() === creds.username.toLowerCase() ||
       enteredUser.toLowerCase() === (creds.alias || 'admin').toLowerCase();
-    const isPwdMatch = enteredHash === creds.passwordHash;
+    const isPwdMatch =
+      enteredHash === creds.passwordHash ||
+      (creds.passwordHash === LEGACY_FALLBACK_HASH && enteredHash === DEFAULT_FALLBACK_HASH) ||
+      (creds.passwordHash === DEFAULT_FALLBACK_HASH && enteredHash === LEGACY_FALLBACK_HASH);
 
     if (!isUserMatch || !isPwdMatch) {
       showLoginError('Utilizador ou palavra-passe incorretos. Por favor, tente novamente.');
@@ -799,7 +803,7 @@ function switchCategory(category) {
       pageDescEl.textContent = 'Altere a palavra-passe administrativa ou exporte/restaure o catálogo oficial da LECASU.';
     } else {
       pageTitleEl.textContent = 'Catálogo de Equipamentos Fotovoltaicos';
-      pageDescEl.textContent = 'Os equipamentos cadastrados aqui ficam automaticamente disponíveis para selecção e dimensionamento pelos clientes na Etapa 3 do simulador.';
+      pageDescEl.textContent = 'Os equipamentos cadastrados aqui ficam automaticamente disponíveis para selecção e dimensionamento pelos clientes na Etapa 3 do portal de dimensionamento.';
     }
   }
 
@@ -1629,7 +1633,7 @@ window.handleSaveProduct = handleSaveProduct;
 async function handleDeleteProduct(category, productId, productName) {
   const list = adminProducts[category];
   if (!list || list.length <= 1) {
-    showToast('Deve existir pelo menos um equipamento disponível nesta categoria para permitir os cálculos do simulador.', 'warning');
+    showToast('Deve existir pelo menos um equipamento disponível nesta categoria para permitir os cálculos de dimensionamento.', 'warning');
     return;
   }
 
