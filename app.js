@@ -66,6 +66,7 @@ function loadAdminProducts() {
   try {
     localStorage.removeItem('lecasu_admin_products_v1');
     localStorage.removeItem('lecasu_admin_products_v2');
+    localStorage.removeItem('lecasu_admin_products_v3');
   } catch {}
 
   try {

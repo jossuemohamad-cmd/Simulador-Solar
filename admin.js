@@ -244,6 +244,7 @@ function loadLocalProductsFallback() {
   try {
     localStorage.removeItem('lecasu_admin_products_v1');
     localStorage.removeItem('lecasu_admin_products_v2');
+    localStorage.removeItem('lecasu_admin_products_v3');
   } catch {}
 
   try {
@@ -717,30 +718,29 @@ function renderSubFilters() {
       { id: 'lv', label: '🔹 Baixa Tensão (LV ~48V)', count: items.filter((i) => i.voltageType === 'LV').length },
       { id: 'hv', label: '⚡ Alta Tensão (HV ~900V)', count: items.filter((i) => i.voltageType === 'HV').length },
       { id: '1ph', label: 'Monofásico (1ph)', count: items.filter((i) => i.phase === '1ph').length },
-      { id: 'split', label: 'Split-Phase (Bifásico)', count: items.filter((i) => i.phase === 'split').length },
       { id: '3ph', label: 'Trifásico (3ph)', count: items.filter((i) => i.phase === '3ph').length },
-      { id: 'brand_megatron', label: 'MEGATRON', count: items.filter((i) => (i.brand || '').toLowerCase().includes('megatron') || (i.name || '').toLowerCase().includes('megatron')).length },
       { id: 'brand_deye', label: 'Deye', count: items.filter((i) => (i.brand || '').toLowerCase().includes('deye') || (i.name || '').toLowerCase().includes('deye')).length },
+      { id: 'brand_megatron', label: 'MEGATRON', count: items.filter((i) => (i.brand || '').toLowerCase().includes('megatron') || (i.name || '').toLowerCase().includes('megatron')).length },
       { id: 'brand_livoltek', label: 'LIVOLTEK', count: items.filter((i) => (i.brand || '').toLowerCase().includes('livoltek') || (i.name || '').toLowerCase().includes('livoltek')).length },
-      { id: 'brand_sigen', label: 'Sigenergy (SigenStor)', count: items.filter((i) => (i.brand || '').toLowerCase().includes('sigen') || (i.name || '').toLowerCase().includes('sigen')).length }
+      { id: 'brand_anern', label: 'ANERN', count: items.filter((i) => (i.brand || '').toLowerCase().includes('anern') || (i.name || '').toLowerCase().includes('anern')).length }
     ];
   } else if (activeCategory === 'batteries') {
     filters = [
       { id: 'all', label: 'Todas as Baterias', count: items.length },
-      { id: 'lv', label: '🔹 Baixa Tensão (LV ~51.2V)', count: items.filter((b) => b.voltageType === 'LV').length },
-      { id: 'hv', label: '⚡ Alta Tensão (HV 100-900V)', count: items.filter((b) => b.voltageType === 'HV').length },
-      { id: 'brand_megatron', label: 'MEGATRON LiFePO4 (5.12 / 16 kWh)', count: items.filter((b) => (b.brand || '').toLowerCase().includes('megatron') || (b.name || '').toLowerCase().includes('megatron')).length },
-      { id: 'brand_deye', label: 'Deye LiFePO4', count: items.filter((b) => (b.brand || '').toLowerCase().includes('deye') || (b.name || '').toLowerCase().includes('deye')).length },
-      { id: 'brand_sigen', label: 'Sigenergy Sigen Battery', count: items.filter((b) => (b.brand || '').toLowerCase().includes('sigen') || (b.name || '').toLowerCase().includes('sigen')).length },
-      { id: 'brand_livoltek', label: 'LIVOLTEK Torre BHF (10 a 61 kWh)', count: items.filter((b) => (b.brand || '').toLowerCase().includes('livoltek') || (b.name || '').toLowerCase().includes('livoltek')).length }
+      { id: 'lv', label: '🔹 Baixa Tensão (LV)', count: items.filter((b) => b.voltageType === 'LV').length },
+      { id: 'hv', label: '⚡ Alta Tensão (HV)', count: items.filter((b) => b.voltageType === 'HV').length },
+      { id: 'brand_megatron', label: 'MEGATRON', count: items.filter((b) => (b.brand || '').toLowerCase().includes('megatron') || (b.name || '').toLowerCase().includes('megatron')).length },
+      { id: 'brand_deye', label: 'Deye', count: items.filter((b) => (b.brand || '').toLowerCase().includes('deye') || (b.name || '').toLowerCase().includes('deye')).length },
+      { id: 'brand_dyness', label: 'DYNESS', count: items.filter((b) => (b.brand || '').toLowerCase().includes('dyness') || (b.name || '').toLowerCase().includes('dyness')).length },
+      { id: 'brand_livoltek', label: 'LIVOLTEK BHF HV', count: items.filter((b) => (b.brand || '').toLowerCase().includes('livoltek') || (b.name || '').toLowerCase().includes('livoltek')).length },
+      { id: 'brand_hz', label: 'HZ Solar (Gel)', count: items.filter((b) => (b.brand || '').toLowerCase().includes('hz') || (b.name || '').toLowerCase().includes('hz')).length }
     ];
   } else if (activeCategory === 'panels') {
     filters = [
       { id: 'all', label: 'Todos os Painéis', count: items.length },
       { id: 'bifacial', label: '✨ N-Type Bifaciais (Dual Glass)', count: items.filter((p) => p.panelType === 'bifacial_dual_glass' || (p.extra || '').toLowerCase().includes('bifacial') || (p.name || '').toLowerCase().includes('bifacial')).length },
-      { id: 'p_600_610', label: '⚡ 600W – 610W', count: items.filter((p) => p.power >= 600 && p.power <= 610).length },
-      { id: 'p_615_625', label: '⚡ 615W – 625W', count: items.filter((p) => p.power >= 615 && p.power <= 625).length },
-      { id: 'brand_jinko', label: 'Jinko Solar (Tiger Neo)', count: items.filter((p) => (p.name || '').toLowerCase().includes('jinko') || (p.brand || '').toLowerCase().includes('jinko')).length }
+      { id: 'brand_jinko', label: 'Jinko Solar (620 Wp)', count: items.filter((p) => (p.name || '').toLowerCase().includes('jinko') || (p.brand || '').toLowerCase().includes('jinko')).length },
+      { id: 'brand_canadian', label: 'Canadian Solar (460 Wp)', count: items.filter((p) => (p.name || '').toLowerCase().includes('canadian') || (p.brand || '').toLowerCase().includes('canadian')).length }
     ];
   }
 
@@ -803,10 +803,11 @@ function renderTable() {
 
   const filtered = items.filter((item) => {
     if (filterQuery) {
+      const idMatch = (item.id || '').toLowerCase().includes(filterQuery);
       const nameMatch = (item.name || '').toLowerCase().includes(filterQuery);
       const extraMatch = (item.extra || '').toLowerCase().includes(filterQuery);
       const brandMatch = (item.brand || '').toLowerCase().includes(filterQuery);
-      if (!nameMatch && !extraMatch && !brandMatch) return false;
+      if (!idMatch && !nameMatch && !extraMatch && !brandMatch) return false;
     }
 
     if (activeSubFilter !== 'all') {
@@ -818,11 +819,12 @@ function renderTable() {
       if (activeSubFilter === 'brand_megatron' && !((item.brand || '').toLowerCase().includes('megatron') || (item.name || '').toLowerCase().includes('megatron'))) return false;
       if (activeSubFilter === 'brand_deye' && !((item.brand || '').toLowerCase().includes('deye') || (item.name || '').toLowerCase().includes('deye'))) return false;
       if (activeSubFilter === 'brand_livoltek' && !((item.brand || '').toLowerCase().includes('livoltek') || (item.name || '').toLowerCase().includes('livoltek'))) return false;
-      if (activeSubFilter === 'brand_sigen' && !((item.brand || '').toLowerCase().includes('sigen') || (item.name || '').toLowerCase().includes('sigen'))) return false;
+      if (activeSubFilter === 'brand_anern' && !((item.brand || '').toLowerCase().includes('anern') || (item.name || '').toLowerCase().includes('anern'))) return false;
+      if (activeSubFilter === 'brand_dyness' && !((item.brand || '').toLowerCase().includes('dyness') || (item.name || '').toLowerCase().includes('dyness'))) return false;
+      if (activeSubFilter === 'brand_hz' && !((item.brand || '').toLowerCase().includes('hz') || (item.name || '').toLowerCase().includes('hz'))) return false;
       if (activeSubFilter === 'bifacial' && !(item.panelType === 'bifacial_dual_glass' || (item.extra || '').toLowerCase().includes('bifacial') || (item.name || '').toLowerCase().includes('bifacial'))) return false;
-      if (activeSubFilter === 'p_600_610' && !(item.power >= 600 && item.power <= 610)) return false;
-      if (activeSubFilter === 'p_615_625' && !(item.power >= 615 && item.power <= 625)) return false;
       if (activeSubFilter === 'brand_jinko' && !((item.name || '').toLowerCase().includes('jinko') || (item.brand || '').toLowerCase().includes('jinko'))) return false;
+      if (activeSubFilter === 'brand_canadian' && !((item.name || '').toLowerCase().includes('canadian') || (item.brand || '').toLowerCase().includes('canadian'))) return false;
     }
 
     return true;
