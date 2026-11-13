@@ -1,3 +1,11 @@
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/mwxntafa/public_html/simulador.lecasu.co.mz"
+PassengerBaseURI "/"
+PassengerNodejs "/home/mwxntafa/nodevenv/public_html/simulador.lecasu.co.mz/20/bin/node"
+PassengerAppType node
+PassengerStartupFile server.js
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
+
 # ========================================================
 # LECASU — Configuração Apache / cPanel / Hospedagem Web
 # ========================================================
@@ -10,7 +18,7 @@ DirectoryIndex index.html
   RewriteEngine On
   RewriteRule ^data(/|$) - [F,L]
   RewriteRule ^backend(/|$) - [F,L]
-  RewriteRule ^api(/|$) - [F,L]
+  RewriteRule ^api/index\.js$ - [F,L]
   RewriteRule ^scratch(/|$) - [F,L]
 </IfModule>
 
