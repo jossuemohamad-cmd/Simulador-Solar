@@ -158,8 +158,22 @@ async function syncCatalogFromServer() {
     const ct2 = appRes.headers.get('content-type') || '';
     if (appRes.ok && ct2.includes('application/json')) {
       const appData = await appRes.json();
-      if (appData && Array.isArray(appData.appliances)) {
-        mergeServerAppliances(appData.appliances);
+      if (appData && Array.isArray(appData.appliances) && appData.appliances.length > 0) {
+        if (chosen.size === 0) {
+          catalog.length = 0;
+          appData.appliances.forEach((srv) => {
+            catalog.push([
+              srv.iconKey || 'custom',
+              String(srv.name).trim().slice(0, 60),
+              Math.round(Number(srv.power) || 100),
+              Number(srv.hours) || 2,
+              Number(srv.factor) || 1,
+              srv.essential !== undefined ? Boolean(srv.essential) : true
+            ]);
+          });
+        } else {
+          mergeServerAppliances(appData.appliances);
+        }
       }
     }
   } catch {}
@@ -1447,7 +1461,6 @@ function openSelectModal() {
   list.replaceChildren();
 
   catalog.forEach((item, idx) => {
-    if (item[0] === 'custom') return;
     const isAdded = chosen.has(idx);
     const btn = document.createElement('button');
     btn.type = 'button';

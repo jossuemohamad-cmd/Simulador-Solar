@@ -315,8 +315,29 @@ function createAppHandler(options = {}) {
       .trim();
   }
 
+  const DEFAULT_APPLIANCES_SEED = [
+    { id: 'sys_led', iconKey: 'led', origin: 'system', name: 'Lâmpada LED', power: 10, hours: 5, factor: 1, essential: true },
+    { id: 'sys_tv', iconKey: 'tv', origin: 'system', name: 'Televisão', power: 100, hours: 5, factor: 1, essential: true },
+    { id: 'sys_fridge', iconKey: 'fridge', origin: 'system', name: 'Geleira', power: 150, hours: 24, factor: 0.35, essential: true },
+    { id: 'sys_freezer', iconKey: 'freezer', origin: 'system', name: 'Congelador', power: 200, hours: 24, factor: 0.35, essential: true },
+    { id: 'sys_fan', iconKey: 'fan', origin: 'system', name: 'Ventoinha', power: 60, hours: 8, factor: 1, essential: true },
+    { id: 'sys_laptop', iconKey: 'laptop', origin: 'system', name: 'Computador portátil', power: 65, hours: 6, factor: 1, essential: true },
+    { id: 'sys_wifi', iconKey: 'wifi', origin: 'system', name: 'Router Wi-Fi', power: 15, hours: 24, factor: 1, essential: true },
+    { id: 'sys_security', iconKey: 'security', origin: 'system', name: 'CCTV & Cerca Elétrica', power: 80, hours: 24, factor: 1, essential: true },
+    { id: 'sys_desktop', iconKey: 'desktop', origin: 'system', name: 'Computador de Escritório', power: 200, hours: 6, factor: 1, essential: true },
+    { id: 'sys_ac', iconKey: 'ac', origin: 'system', name: 'Ar condicionado', power: 1200, hours: 8, factor: 1, essential: false },
+    { id: 'sys_pump', iconKey: 'pump', origin: 'system', name: 'Bomba de água', power: 750, hours: 1, factor: 1, essential: false },
+    { id: 'sys_borehole', iconKey: 'borehole', origin: 'system', name: 'Bomba de Furo Submersa', power: 1500, hours: 1.5, factor: 1, essential: false },
+    { id: 'sys_washing', iconKey: 'washing', origin: 'system', name: 'Máquina de lavar', power: 500, hours: 1, factor: 1, essential: false },
+    { id: 'sys_microwave', iconKey: 'microwave', origin: 'system', name: 'Micro-ondas', power: 1200, hours: 0.5, factor: 1, essential: false },
+    { id: 'sys_iron', iconKey: 'iron', origin: 'system', name: 'Ferro de engomar', power: 1800, hours: 0.5, factor: 1, essential: false },
+    { id: 'sys_kettle', iconKey: 'kettle', origin: 'system', name: 'Chaleira', power: 2000, hours: 0.25, factor: 1, essential: false },
+    { id: 'sys_waterheater', iconKey: 'waterheater', origin: 'system', name: 'Termoacumulador / Geyser', power: 1500, hours: 2, factor: 0.7, essential: false }
+  ];
+
   async function getSavedAppliances() {
     if (db.isConfigured()) {
+      await db.seedAppliancesIfNeeded(DEFAULT_APPLIANCES_SEED);
       const dbList = await db.loadAppliances();
       if (Array.isArray(dbList)) {
         memoryAppliances = dbList;
@@ -333,7 +354,10 @@ function createAppHandler(options = {}) {
         }
       } catch {}
     }
-    return [];
+    const seeded = DEFAULT_APPLIANCES_SEED.map((x) => ({ ...x, createdAt: new Date().toISOString() }));
+    memoryAppliances = seeded;
+    writeJsonAtomic(APPLIANCES_FILE, seeded);
+    return seeded;
   }
 
   function getSessionSecret() {
@@ -929,6 +953,8 @@ function createAppHandler(options = {}) {
 
         const entry = {
           id: `app_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          iconKey: String(body.iconKey || 'custom').slice(0, 40),
+          origin: body.origin === 'system' ? 'system' : 'client',
           name,
           power,
           hours,
@@ -947,6 +973,63 @@ function createAppHandler(options = {}) {
         writeJsonAtomic(APPLIANCES_FILE, updated);
 
         return sendJson(res, 201, { ok: true, appliance: entry, duplicate: false });
+      } catch (err) {
+        return sendJson(res, err.statusCode || 400, { error: err.message });
+      }
+    }
+
+    if (pathname.startsWith('/api/appliances/') && (method === 'PUT' || method === 'DELETE')) {
+      const auth = await getAuthenticatedAdmin(req);
+      if (!auth) return sendJson(res, 401, { error: 'Sessão expirada ou não autenticada.' });
+
+      const appId = decodeURIComponent(pathname.slice('/api/appliances/'.length)).trim();
+      if (!appId) return sendJson(res, 400, { error: 'ID do aparelho inválido.' });
+
+      const list = await getSavedAppliances();
+      const idx = list.findIndex((item) => item.id === appId);
+      if (idx === -1) return sendJson(res, 404, { error: 'Aparelho não encontrado.' });
+
+      if (method === 'DELETE') {
+        if (db.isConfigured()) {
+          await db.deleteAppliance(appId);
+        }
+        const updated = list.filter((item) => item.id !== appId);
+        memoryAppliances = updated;
+        writeJsonAtomic(APPLIANCES_FILE, updated);
+        return sendJson(res, 200, { ok: true });
+      }
+
+      try {
+        const body = await readJsonBody(req, 16 * 1024);
+        const name = String(body.name || list[idx].name).trim().slice(0, 60);
+        const power = Math.max(1, Math.min(50000, Math.round(Number(body.power) || list[idx].power)));
+        const hours = Math.max(0.1, Math.min(24, Number(body.hours) || list[idx].hours));
+        const factor = Math.max(0.1, Math.min(1, Number(body.factor) || list[idx].factor || 1));
+        const essential = body.essential !== undefined ? Boolean(body.essential) : Boolean(list[idx].essential);
+
+        if (!name || name.length < 2) {
+          return sendJson(res, 400, { error: 'Nome do aparelho inválido.' });
+        }
+
+        const updatedEntry = {
+          ...list[idx],
+          name,
+          power,
+          hours,
+          factor,
+          essential
+        };
+
+        if (db.isConfigured()) {
+          await db.upsertAppliance(updatedEntry);
+        }
+
+        const updated = [...list];
+        updated[idx] = updatedEntry;
+        memoryAppliances = updated;
+        writeJsonAtomic(APPLIANCES_FILE, updated);
+
+        return sendJson(res, 200, { ok: true, appliance: updatedEntry });
       } catch (err) {
         return sendJson(res, err.statusCode || 400, { error: err.message });
       }

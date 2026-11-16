@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="icon-192.png">
 
-  <link rel="stylesheet" href="admin.css?v=20261116_10">
+  <link rel="stylesheet" href="admin.css?v=20261116_11">
 </head>
 <body>
 
@@ -252,6 +252,30 @@
               </div>
             </div>
 
+            <!-- Filtros Próprios da Aba Aparelhos -->
+            <div class="filter-dropdown-group" id="app-origin-filter-wrapper" hidden>
+              <label for="admin-app-origin-select" class="filter-label">Origem do Aparelho</label>
+              <div class="select-wrapper">
+                <select id="admin-app-origin-select" onchange="onApplianceOriginFilterChange(this.value)">
+                  <option value="all">Todas as Origens</option>
+                  <option value="system">Padrão LECASU</option>
+                  <option value="client">Registado no Sistema</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-dropdown-group" id="app-power-filter-wrapper" hidden>
+              <label for="admin-app-power-select" class="filter-label">Faixa de Potência</label>
+              <div class="select-wrapper">
+                <select id="admin-app-power-select" onchange="onAppliancePowerFilterChange(this.value)">
+                  <option value="all">Todas as Potências</option>
+                  <option value="low">Baixa Potência (≤ 200 W)</option>
+                  <option value="medium">Média Potência (201 – 1.000 W)</option>
+                  <option value="high">Alta Potência (&gt; 1.000 W)</option>
+                </select>
+              </div>
+            </div>
+
             <!-- Pesquisa de Texto -->
             <div class="table-search-box" id="table-search-container">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -298,11 +322,12 @@
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th style="width: 32%;">Aparelho</th>
-                    <th style="width: 18%;">Origem</th>
-                    <th style="width: 18%;">Potência Real (W)</th>
-                    <th style="width: 16%;">Uso Padrão</th>
-                    <th style="width: 16%;">Bateria em Cortes</th>
+                    <th style="width: 30%;">Aparelho</th>
+                    <th style="width: 16%;">Origem</th>
+                    <th style="width: 16%;">Potência Real (W)</th>
+                    <th style="width: 14%;">Uso Padrão</th>
+                    <th style="width: 14%;">Bateria em Cortes</th>
+                    <th style="width: 10%; text-align: right;">Ações</th>
                   </tr>
                 </thead>
                 <tbody id="appliances-table-tbody"></tbody>
@@ -650,18 +675,23 @@
       </div>
       <form id="admin-appliance-form" onsubmit="handleSaveAdminAppliance(event)">
         <div class="modal-body">
+          <input type="hidden" id="adm-app-id" value="">
           <div class="form-group">
             <label for="adm-app-name">Nome do Aparelho <span class="req">*</span></label>
             <input type="text" id="adm-app-name" placeholder="Ex.: Bomba Submersa 1.5HP" maxlength="60" required>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px;">
             <div class="form-group">
               <label for="adm-app-power">Potência Real (W) <span class="req">*</span></label>
               <input type="number" id="adm-app-power" min="1" max="50000" value="200" required>
             </div>
             <div class="form-group">
-              <label for="adm-app-hours">Horas Padrão (h/dia) <span class="req">*</span></label>
+              <label for="adm-app-hours">Horas Padrão <span class="req">*</span></label>
               <input type="number" id="adm-app-hours" min="0.1" max="24" step="any" value="2" required>
+            </div>
+            <div class="form-group">
+              <label for="adm-app-factor">Fator Uso (0.1–1)</label>
+              <input type="number" id="adm-app-factor" min="0.1" max="1" step="0.05" value="1" required>
             </div>
           </div>
           <label class="checkbox-remember" style="margin-top: 14px;">
@@ -671,7 +701,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-secondary" onclick="closeAdminApplianceModal()">Cancelar</button>
-          <button type="submit" class="btn-primary">Guardar Aparelho</button>
+          <button type="submit" id="adm-app-submit-btn" class="btn-primary">Guardar Aparelho</button>
         </div>
       </form>
     </div>
@@ -680,7 +710,7 @@
   <!-- Recipiente Flutuante de Toasts / Notificações Elegantes -->
   <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="shared-catalog.js?v=20261116_10"></script>
-  <script src="admin.js?v=20261116_10"></script>
+  <script src="shared-catalog.js?v=20261116_11"></script>
+  <script src="admin.js?v=20261116_11"></script>
 </body>
 </html>

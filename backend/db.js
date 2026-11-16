@@ -164,6 +164,8 @@ async function ensureSchema() {
     await p.query(`
       CREATE TABLE IF NOT EXISTS appliances (
         id VARCHAR(120) NOT NULL,
+        icon_key VARCHAR(40) NOT NULL DEFAULT 'custom',
+        origin VARCHAR(24) NOT NULL DEFAULT 'client',
         name VARCHAR(120) NOT NULL,
         power_w INT NOT NULL DEFAULT 100,
         default_hours DECIMAL(5, 2) NOT NULL DEFAULT 2,
@@ -174,6 +176,13 @@ async function ensureSchema() {
         INDEX idx_appliances_name (name)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    try {
+      await p.query(`ALTER TABLE appliances ADD COLUMN icon_key VARCHAR(40) NOT NULL DEFAULT 'custom' AFTER id`);
+    } catch {}
+    try {
+      await p.query(`ALTER TABLE appliances ADD COLUMN origin VARCHAR(24) NOT NULL DEFAULT 'client' AFTER icon_key`);
+    } catch {}
 
     schemaReady = true;
     lastDbError = null;
@@ -482,10 +491,12 @@ async function loadAppliances() {
   try {
     const p = await getPool();
     const [rows] = await p.query(
-      'SELECT id, name, power_w, default_hours, usage_factor, essential_default, created_at FROM appliances ORDER BY name ASC'
+      'SELECT id, icon_key, origin, name, power_w, default_hours, usage_factor, essential_default, created_at FROM appliances ORDER BY origin DESC, name ASC'
     );
     return rows.map((r) => ({
       id: r.id,
+      iconKey: r.icon_key || 'custom',
+      origin: r.origin || 'client',
       name: r.name,
       power: Number(r.power_w) || 100,
       hours: Number(r.default_hours) || 2,
@@ -508,13 +519,20 @@ async function upsertAppliance(entry) {
   try {
     const p = await getPool();
     await p.query(
-      `INSERT INTO appliances (id, name, power_w, default_hours, usage_factor, essential_default)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO appliances (id, icon_key, origin, name, power_w, default_hours, usage_factor, essential_default)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
+         icon_key = VALUES(icon_key),
+         origin = VALUES(origin),
+         name = VALUES(name),
+         power_w = VALUES(power_w),
          default_hours = VALUES(default_hours),
+         usage_factor = VALUES(usage_factor),
          essential_default = VALUES(essential_default)`,
       [
         entry.id,
+        entry.iconKey || 'custom',
+        entry.origin || 'client',
         entry.name,
         Math.round(Number(entry.power) || 100),
         Number(entry.hours) || 2,
@@ -526,6 +544,50 @@ async function upsertAppliance(entry) {
   } catch (err) {
     lastDbError = err.message;
     console.warn('Aviso MySQL (upsertAppliance):', err.message);
+    return false;
+  }
+}
+
+async function deleteAppliance(id) {
+  if (!isConfigured()) return false;
+  const ok = await ensureSchema();
+  if (!ok) return false;
+
+  try {
+    const p = await getPool();
+    await p.query('DELETE FROM appliances WHERE id = ?', [id]);
+    return true;
+  } catch (err) {
+    lastDbError = err.message;
+    console.warn('Aviso MySQL (deleteAppliance):', err.message);
+    return false;
+  }
+}
+
+async function seedAppliancesIfNeeded(defaultList) {
+  if (!isConfigured() || !Array.isArray(defaultList) || defaultList.length === 0) return false;
+  const ok = await ensureSchema();
+  if (!ok) return false;
+
+  try {
+    const p = await getPool();
+    const [metaRows] = await p.query("SELECT meta_value FROM system_meta WHERE meta_key = 'appliances_seeded' LIMIT 1");
+    if (metaRows && metaRows.length > 0 && metaRows[0].meta_value === '1') {
+      return false;
+    }
+    const [countRows] = await p.query('SELECT COUNT(*) AS total FROM appliances');
+    const total = Number(countRows && countRows[0] && countRows[0].total) || 0;
+    if (total === 0) {
+      for (const item of defaultList) {
+        await upsertAppliance(item);
+      }
+    }
+    await p.query(
+      "INSERT INTO system_meta (meta_key, meta_value) VALUES ('appliances_seeded', '1') ON DUPLICATE KEY UPDATE meta_value = '1'"
+    );
+    return true;
+  } catch (err) {
+    lastDbError = err.message;
     return false;
   }
 }
@@ -551,6 +613,8 @@ module.exports = {
   insertQuote,
   loadAppliances,
   upsertAppliance,
+  deleteAppliance,
+  seedAppliancesIfNeeded,
   getStatus
 };
 

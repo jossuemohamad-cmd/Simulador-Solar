@@ -796,55 +796,67 @@ function getApplianceSvg(iconKey) {
   return icons[iconKey] || icons.custom;
 }
 
+let activeAppOriginFilter = 'all';
+let activeAppPowerFilter = 'all';
+let activeAppEssentialFilter = 'all';
+
 function getAllAvailableAppliances() {
-  const combined = [...DEFAULT_APPLIANCES];
-  serverAppliances.forEach((srv) => {
-    const normName = String(srv.name || '').trim().toLowerCase();
-    const power = Math.round(Number(srv.power) || 0);
-    const exists = combined.some(
-      (x) => x.name.toLowerCase() === normName && Math.round(x.power) === power
-    );
-    if (!exists && normName && power > 0) {
-      combined.push({
-        iconKey: 'custom',
-        name: srv.name,
-        power,
-        hours: Number(srv.hours) || 2,
-        factor: Number(srv.factor) || 1,
-        essential: srv.essential !== undefined ? Boolean(srv.essential) : true,
-        origin: 'client'
-      });
-    }
-  });
-  return combined;
-}
-
-async function syncAppliancesFromServer() {
-  try {
-    const res = await fetch('/api/appliances', { cache: 'no-store' });
-    const ct = res.headers.get('content-type') || '';
-    if (res.ok && ct.includes('application/json')) {
-      const data = await res.json();
-      if (data && Array.isArray(data.appliances)) {
-        serverAppliances = data.appliances;
-        appliancesLoaded = true;
-        const totalApps = getAllAvailableAppliances().length;
-        if ($('kpi-appliances-count')) $('kpi-appliances-count').textContent = totalApps;
-        if (activeCategory === 'appliances') {
-          renderAppliancesTable();
-        }
-      }
-    }
-  } catch {}
-}
-
-function formatAppliancePower(w) {
-  const num = Math.round(Number(w) || 0);
-  if (num >= 1000) {
-    const kw = (num / 1000).toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
-    return `${num.toLocaleString('pt-MZ')} W (${kw} kW)`;
+  if (appliancesLoaded && Array.isArray(serverAppliances)) {
+    return serverAppliances.map((srv) => ({
+      id: srv.id,
+      iconKey: srv.iconKey || 'custom',
+      origin: srv.origin || 'client',
+      name: srv.name,
+      power: Math.round(Number(srv.power) || 100),
+      hours: Number(srv.hours) || 2,
+      factor: Number(srv.factor) || 1,
+      essential: srv.essential !== undefined ? Boolean(srv.essential) : true
+    }));
   }
-  return `${num} W`;
+  return DEFAULT_APPLIANCES.map((d, idx) => ({ ...d, id: `sys_${idx}` }));
+}
+
+function onApplianceOriginFilterChange(val) {
+  activeAppOriginFilter = val || 'all';
+  renderApplianceSubFilters();
+  renderAppliancesTable();
+}
+window.onApplianceOriginFilterChange = onApplianceOriginFilterChange;
+
+function onAppliancePowerFilterChange(val) {
+  activeAppPowerFilter = val || 'all';
+  renderApplianceSubFilters();
+  renderAppliancesTable();
+}
+window.onAppliancePowerFilterChange = onAppliancePowerFilterChange;
+
+function onApplianceEssentialChipClick(val) {
+  activeAppEssentialFilter = val || 'all';
+  renderApplianceSubFilters();
+  renderAppliancesTable();
+}
+window.onApplianceEssentialChipClick = onApplianceEssentialChipClick;
+
+function renderApplianceSubFilters() {
+  const bar = $('admin-subfilters-bar');
+  if (!bar) return;
+  bar.replaceChildren();
+
+  const all = getAllAvailableAppliances();
+  const chips = [
+    { key: 'all', label: `Todos (${all.length})` },
+    { key: 'essential', label: `Essenciais (${all.filter((x) => x.essential).length})` },
+    { key: 'optional', label: `Opcionais (${all.filter((x) => !x.essential).length})` }
+  ];
+
+  chips.forEach((c) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'subfilter-chip' + (activeAppEssentialFilter === c.key ? ' active' : '');
+    btn.textContent = c.label;
+    btn.onclick = () => onApplianceEssentialChipClick(c.key);
+    bar.append(btn);
+  });
 }
 
 function renderAppliancesTable() {
@@ -854,9 +866,16 @@ function renderAppliancesTable() {
 
   const all = getAllAvailableAppliances();
   const q = (filterQuery || '').toLowerCase().trim();
-  const filtered = q
-    ? all.filter((item) => item.name.toLowerCase().includes(q) || String(item.power).includes(q))
-    : all;
+  const filtered = all.filter((item) => {
+    if (activeAppOriginFilter !== 'all' && item.origin !== activeAppOriginFilter) return false;
+    if (activeAppPowerFilter === 'low' && item.power > 200) return false;
+    if (activeAppPowerFilter === 'medium' && (item.power <= 200 || item.power > 1000)) return false;
+    if (activeAppPowerFilter === 'high' && item.power <= 1000) return false;
+    if (activeAppEssentialFilter === 'essential' && !item.essential) return false;
+    if (activeAppEssentialFilter === 'optional' && item.essential) return false;
+    if (q && !item.name.toLowerCase().includes(q) && !String(item.power).includes(q)) return false;
+    return true;
+  });
 
   if ($('current-category-count')) {
     $('current-category-count').textContent = `${filtered.length} ${filtered.length === 1 ? 'aparelho' : 'aparelhos'}`;
@@ -865,11 +884,11 @@ function renderAppliancesTable() {
   if (filtered.length === 0) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
-    td.colSpan = 5;
+    td.colSpan = 6;
     td.style.textAlign = 'center';
     td.style.padding = '36px 16px';
     td.style.color = 'var(--muted)';
-    td.textContent = 'Nenhum aparelho encontrado para a pesquisa.';
+    td.textContent = 'Nenhum aparelho encontrado para os filtros aplicados.';
     tr.append(td);
     tbody.append(tr);
     return;
@@ -907,20 +926,64 @@ function renderAppliancesTable() {
       ? '<span class="appliance-origin-pill" style="background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Essencial (Sim)</span>'
       : '<span class="appliance-origin-pill system">Opcional (Não)</span>';
 
-    tr.append(tdName, tdOrigin, tdPower, tdUsage, tdEssential);
+    const tdActions = document.createElement('td');
+    tdActions.style.textAlign = 'right';
+    const actionsBox = document.createElement('div');
+    actionsBox.className = 'table-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'btn-icon-action';
+    editBtn.title = 'Editar aparelho';
+    editBtn.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    editBtn.onclick = () => openEditAdminApplianceModal(item.id);
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'btn-icon-action danger';
+    delBtn.title = 'Eliminar aparelho';
+    delBtn.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+    delBtn.onclick = () => handleDeleteAdminAppliance(item.id, item.name);
+
+    actionsBox.append(editBtn, delBtn);
+    tdActions.append(actionsBox);
+
+    tr.append(tdName, tdOrigin, tdPower, tdUsage, tdEssential, tdActions);
     tbody.append(tr);
   });
 }
 
 function openAdminApplianceModal() {
+  if ($('adm-app-id')) $('adm-app-id').value = '';
+  if ($('admin-app-modal-title')) $('admin-app-modal-title').textContent = 'Adicionar Aparelho ao Sistema';
+  if ($('adm-app-submit-btn')) $('adm-app-submit-btn').textContent = 'Guardar Aparelho';
   if ($('adm-app-name')) $('adm-app-name').value = '';
   if ($('adm-app-power')) $('adm-app-power').value = '200';
   if ($('adm-app-hours')) $('adm-app-hours').value = '2';
+  if ($('adm-app-factor')) $('adm-app-factor').value = '1';
   if ($('adm-app-essential')) $('adm-app-essential').checked = true;
   const modal = $('admin-appliance-modal');
   if (modal) modal.hidden = false;
 }
 window.openAdminApplianceModal = openAdminApplianceModal;
+
+function openEditAdminApplianceModal(id) {
+  const item = getAllAvailableAppliances().find((x) => x.id === id);
+  if (!item) return;
+
+  if ($('adm-app-id')) $('adm-app-id').value = item.id;
+  if ($('admin-app-modal-title')) $('admin-app-modal-title').textContent = 'Editar Aparelho';
+  if ($('adm-app-submit-btn')) $('adm-app-submit-btn').textContent = 'Atualizar Aparelho';
+  if ($('adm-app-name')) $('adm-app-name').value = item.name;
+  if ($('adm-app-power')) $('adm-app-power').value = String(item.power);
+  if ($('adm-app-hours')) $('adm-app-hours').value = String(item.hours);
+  if ($('adm-app-factor')) $('adm-app-factor').value = String(item.factor || 1);
+  if ($('adm-app-essential')) $('adm-app-essential').checked = Boolean(item.essential);
+
+  const modal = $('admin-appliance-modal');
+  if (modal) modal.hidden = false;
+}
+window.openEditAdminApplianceModal = openEditAdminApplianceModal;
 
 function closeAdminApplianceModal() {
   const modal = $('admin-appliance-modal');
@@ -930,31 +993,93 @@ window.closeAdminApplianceModal = closeAdminApplianceModal;
 
 async function handleSaveAdminAppliance(event) {
   event.preventDefault();
+  const id = ($('adm-app-id') && $('adm-app-id').value.trim()) || '';
   const name = ($('adm-app-name') && $('adm-app-name').value.trim()) || '';
   const power = Math.max(1, Math.min(50000, Math.round(Number($('adm-app-power').value) || 200)));
   const hours = Math.max(0.1, Math.min(24, Number($('adm-app-hours').value) || 2));
+  const factor = Math.max(0.1, Math.min(1, Number($('adm-app-factor') && $('adm-app-factor').value) || 1));
   const essential = Boolean($('adm-app-essential') && $('adm-app-essential').checked);
 
   if (!name || name.length < 2) return;
 
+  const isEdit = Boolean(id);
+  const url = isEdit ? `/api/appliances/${encodeURIComponent(id)}` : '/api/appliances';
+  const method = isEdit ? 'PUT' : 'POST';
+
   try {
-    const res = await fetch('/api/appliances', {
-      method: 'POST',
+    const res = await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, power, hours, factor: 1, essential })
+      body: JSON.stringify({ name, power, hours, factor, essential })
     });
     if (res.ok) {
       closeAdminApplianceModal();
       await syncAppliancesFromServer();
-      showToast('Aparelho guardado e disponível para todos os clientes.', 'success');
+      renderApplianceSubFilters();
+      showToast(isEdit ? 'Aparelho atualizado com sucesso.' : 'Aparelho guardado e disponível para todos os clientes.', 'success');
     } else {
-      showToast('Erro ao guardar aparelho.', 'error');
+      const errData = await res.json().catch(() => ({}));
+      showToast(errData.error || 'Erro ao guardar aparelho.', 'error');
     }
   } catch {
     showToast('Erro de rede ao guardar aparelho.', 'error');
   }
 }
 window.handleSaveAdminAppliance = handleSaveAdminAppliance;
+
+async function handleDeleteAdminAppliance(id, name) {
+  const confirmed = await showConfirmModal(
+    'Eliminar Aparelho',
+    `Tem a certeza que deseja eliminar "${name}" da lista de aparelhos disponíveis?`,
+    'Eliminar',
+    true
+  );
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`/api/appliances/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (res.ok) {
+      await syncAppliancesFromServer();
+      renderApplianceSubFilters();
+      showToast(`"${name}" eliminado com sucesso.`, 'success');
+    } else {
+      const errData = await res.json().catch(() => ({}));
+      showToast(errData.error || 'Erro ao eliminar aparelho.', 'error');
+    }
+  } catch {
+    showToast('Erro de rede ao eliminar aparelho.', 'error');
+  }
+}
+window.handleDeleteAdminAppliance = handleDeleteAdminAppliance;
+
+async function syncAppliancesFromServer() {
+  try {
+    const res = await fetch('/api/appliances', { cache: 'no-store' });
+    const ct = res.headers.get('content-type') || '';
+    if (res.ok && ct.includes('application/json')) {
+      const data = await res.json();
+      if (data && Array.isArray(data.appliances)) {
+        serverAppliances = data.appliances;
+        appliancesLoaded = true;
+        const totalApps = getAllAvailableAppliances().length;
+        if ($('kpi-appliances-count')) $('kpi-appliances-count').textContent = totalApps;
+        if (activeCategory === 'appliances') {
+          renderApplianceSubFilters();
+          renderAppliancesTable();
+        }
+      }
+    }
+  } catch {}
+}
+
+function formatAppliancePower(w) {
+  const num = Math.round(Number(w) || 0);
+  if (num >= 1000) {
+    const kw = (num / 1000).toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+    return `${num.toLocaleString('pt-MZ')} W (${kw} kW)`;
+  }
+  return `${num} W`;
+}
 
 function updateKpis() {
   const panelsCount = (adminProducts.panels || []).length;
@@ -1055,6 +1180,8 @@ function switchCategory(category) {
   const subfiltersBar = $('admin-subfilters-bar');
   const brandFilterWrapper = $('brand-filter-wrapper');
   const voltageFilterWrapper = $('voltage-filter-wrapper');
+  const appOriginWrapper = $('app-origin-filter-wrapper');
+  const appPowerWrapper = $('app-power-filter-wrapper');
 
   if (category === 'settings') {
     if (productsView) productsView.hidden = true;
@@ -1064,17 +1191,27 @@ function switchCategory(category) {
     if (subfiltersBar) subfiltersBar.hidden = true;
     if (brandFilterWrapper) brandFilterWrapper.hidden = true;
     if (voltageFilterWrapper) voltageFilterWrapper.hidden = true;
+    if (appOriginWrapper) appOriginWrapper.hidden = true;
+    if (appPowerWrapper) appPowerWrapper.hidden = true;
     if ($('current-category-count')) {
       $('current-category-count').textContent = 'Definições do Sistema';
     }
   } else if (category === 'appliances') {
+    activeAppOriginFilter = 'all';
+    activeAppPowerFilter = 'all';
+    activeAppEssentialFilter = 'all';
+    if ($('admin-app-origin-select')) $('admin-app-origin-select').value = 'all';
+    if ($('admin-app-power-select')) $('admin-app-power-select').value = 'all';
     if (productsView) productsView.hidden = true;
     if (appliancesView) appliancesView.hidden = false;
     if (settingsView) settingsView.hidden = true;
     if (searchContainer) searchContainer.hidden = false;
-    if (subfiltersBar) subfiltersBar.hidden = true;
+    if (subfiltersBar) subfiltersBar.hidden = false;
     if (brandFilterWrapper) brandFilterWrapper.hidden = true;
     if (voltageFilterWrapper) voltageFilterWrapper.hidden = true;
+    if (appOriginWrapper) appOriginWrapper.hidden = false;
+    if (appPowerWrapper) appPowerWrapper.hidden = false;
+    renderApplianceSubFilters();
     renderAppliancesTable();
     syncAppliancesFromServer();
   } else {
@@ -1085,6 +1222,8 @@ function switchCategory(category) {
     if (subfiltersBar) subfiltersBar.hidden = false;
     if (brandFilterWrapper) brandFilterWrapper.hidden = false;
     if (voltageFilterWrapper) voltageFilterWrapper.hidden = false;
+    if (appOriginWrapper) appOriginWrapper.hidden = true;
+    if (appPowerWrapper) appPowerWrapper.hidden = true;
     renderSubFilters();
     renderTable();
   }
