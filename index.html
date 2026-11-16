@@ -21,7 +21,7 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="icon-192.png">
 
-  <link rel="stylesheet" href="style.css?v=20261116_08">
+  <link rel="stylesheet" href="style.css?v=20261116_09">
 </head>
 <body>
   <div class="app-shell">
@@ -245,7 +245,7 @@
   </div>
 
   <!-- MODAL: AJUSTAR APARELHO -->
-  <div id="adjust-modal" class="modal-backdrop" hidden onclick="handleModalBackdrop(event, 'adjust-modal')">
+  <div id="adjust-modal" class="modal-backdrop" hidden>
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="adjust-modal-title">
       <div class="modal-head">
         <h3 id="adjust-modal-title">Ajustar Aparelho</h3>
@@ -277,7 +277,7 @@
   </div>
 
   <!-- MODAL: OUTRO APARELHO -->
-  <div id="custom-modal" class="modal-backdrop" hidden onclick="handleModalBackdrop(event, 'custom-modal')">
+  <div id="custom-modal" class="modal-backdrop" hidden>
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="custom-modal-title">
       <div class="modal-head">
         <h3 id="custom-modal-title">Adicionar Aparelho</h3>
@@ -322,7 +322,7 @@
   </div>
 
   <!-- MODAL: SELECIONAR APARELHO EXISTENTE -->
-  <div id="select-appliance-modal" class="modal-backdrop" hidden onclick="handleModalBackdrop(event, 'select-appliance-modal')">
+  <div id="select-appliance-modal" class="modal-backdrop" hidden>
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="select-modal-title">
       <div class="modal-head">
         <h3 id="select-modal-title">Selecionar Aparelho</h3>
@@ -331,11 +331,14 @@
         </button>
       </div>
       <div id="select-appliance-list" class="select-catalog-list"></div>
+      <div class="modal-foot">
+        <button type="button" class="btn-outline" style="margin-left: auto;" onclick="closeSelectModal()">Cancelar</button>
+      </div>
     </div>
   </div>
 
   <!-- MODAL: PEDIR COTAÇÃO -->
-  <div id="quote-modal" class="modal-backdrop" hidden onclick="handleModalBackdrop(event, 'quote-modal')">
+  <div id="quote-modal" class="modal-backdrop" hidden>
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="quote-modal-title">
       <div class="modal-head">
         <h3 id="quote-modal-title">Pedir cotação oficial</h3>
@@ -385,12 +388,13 @@
               <span>Imprimir Proposta A4</span>
             </button>
           </div>
+          <button type="button" class="btn-outline" style="width: 100%;" onclick="closeQuoteModal()">Cancelar</button>
         </div>
       </form>
     </div>
   </div>
 
-  <script src="shared-catalog.js?v=20261116_08"></script>
-  <script src="app.js?v=20261116_08"></script>
+  <script src="shared-catalog.js?v=20261116_09"></script>
+  <script src="app.js?v=20261116_09"></script>
 </body>
 </html>
