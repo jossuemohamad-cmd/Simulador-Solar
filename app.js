@@ -1775,7 +1775,7 @@ function submitQuoteForm(event) {
 
   submitQuoteToBackend('whatsapp');
   const textSummary = buildQuoteSummaryText(r, clientName, clientPhone, location, projType, backupHours, subtotal, iva, totalComIva);
-  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(textSummary)}`, '_blank', 'noopener');
+  window.open(`https://api.whatsapp.com/send?phone=258855500255&text=${encodeURIComponent(textSummary)}`, '_blank', 'noopener');
   showThankYouPage();
 }
 
