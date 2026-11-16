@@ -318,7 +318,7 @@ let selectedBackupHours = 4;
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => new Intl.NumberFormat('pt-MZ', { maximumFractionDigits: 2 }).format(n);
 const fmt1 = (n) => new Intl.NumberFormat('pt-MZ', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n);
-const money = (n) => new Intl.NumberFormat('pt-MZ', { maximumFractionDigits: 0 }).format(n) + ' MT';
+const money = (n) => new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0) + ' MZN';
 
 /**
  * Formata capacidade elétrica

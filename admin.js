@@ -33,7 +33,7 @@ let isBackendAvailable = null; // null = ainda não detetado; true/false após /
 let currentUploadedImageDataUrl = ''; // Armazena em memória o data:image/ da foto carregada no modal
 
 const $ = (id) => document.getElementById(id);
-const money = (n) => new Intl.NumberFormat('pt-MZ', { maximumFractionDigits: 0 }).format(n) + ' MT';
+const money = (n) => new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0) + ' MZN';
 
 /**
  * Exibe notificação moderna e elegante (Toast) no canto superior direito
