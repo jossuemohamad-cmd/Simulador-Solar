@@ -263,6 +263,7 @@ function resetSimulation() {
 // Estado da Aplicação
 const chosen = new Map();
 const PRIMARY_APPLIANCE_INDICES = [0, 2, 1, 4]; // Lâmpada LED, Geleira, Televisão, Ventoinha
+const removedPrimaryIndices = new Set();
 let currentStep = 0;
 let selectedBackupHours = 4;
 
@@ -302,13 +303,21 @@ function renderAppliancesList() {
   if (!container) return;
   container.replaceChildren();
 
-  // Mostra os 4 aparelhos principais + quaisquer outros já adicionados pelo utilizador
-  const displayIndices = [...PRIMARY_APPLIANCE_INDICES];
+  // Mostra os aparelhos principais (não removidos) + quaisquer outros adicionados pelo utilizador
+  const displayIndices = PRIMARY_APPLIANCE_INDICES.filter((idx) => !removedPrimaryIndices.has(idx) || chosen.has(idx));
   chosen.forEach((_, idx) => {
     if (!displayIndices.includes(idx)) {
       displayIndices.push(idx);
     }
   });
+
+  if (displayIndices.length === 0) {
+    const emptyMsg = document.createElement('div');
+    emptyMsg.className = 'appliances-empty';
+    emptyMsg.textContent = 'Nenhum aparelho na lista. Clique em "Adicionar aparelho" abaixo.';
+    container.append(emptyMsg);
+    return;
+  }
 
   displayIndices.forEach((idx) => {
     const base = catalog[idx];
@@ -329,12 +338,23 @@ function renderAppliancesList() {
     info.append(nameEl);
 
     if (qty > 0 || !PRIMARY_APPLIANCE_INDICES.includes(idx)) {
+      const actionsRow = document.createElement('div');
+      actionsRow.className = 'appliance-actions';
+
       const adjustBtn = document.createElement('button');
       adjustBtn.type = 'button';
       adjustBtn.className = 'adjust-link';
       adjustBtn.textContent = 'Ajustar';
       adjustBtn.onclick = () => openAdjustModal(idx);
-      info.append(adjustBtn);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'remove-link';
+      removeBtn.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>Remover</span>`;
+      removeBtn.onclick = () => removeAppliance(idx);
+
+      actionsRow.append(adjustBtn, removeBtn);
+      info.append(actionsRow);
     }
 
     const qtyInput = document.createElement('input');
@@ -481,11 +501,18 @@ function saveAdjustModal(event) {
   render();
 }
 
+function removeAppliance(idx) {
+  chosen.delete(idx);
+  if (PRIMARY_APPLIANCE_INDICES.includes(idx)) {
+    removedPrimaryIndices.add(idx);
+  }
+  render();
+}
+
 function removeAdjustedAppliance() {
   const idx = Number($('adjust-index').value);
-  chosen.delete(idx);
   closeAdjustModal();
-  render();
+  removeAppliance(idx);
 }
 
 /**
@@ -1487,6 +1514,7 @@ function saveCustomModal(event) {
   }
 
   if (targetIdx !== -1) {
+    removedPrimaryIndices.delete(targetIdx);
     const base = catalog[targetIdx];
     chosen.set(targetIdx, {
       iconKey: base[0],
