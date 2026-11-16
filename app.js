@@ -1319,9 +1319,9 @@ function result(calcResult) {
   const iva = Math.round(subtotal * 0.16);
   const totalComIva = subtotal + iva;
 
-  // Atualiza UI do Resultado (Etapa 3) conforme layout limpo (sem nomes/marcas de equipamentos)
+  // Atualiza UI do Resultado (Etapa 3) com custo preliminar real (sem nomes/marcas de equipamentos)
   if ($('result-price')) {
-    $('result-price').textContent = 'Preço sob consulta';
+    $('result-price').textContent = totalComIva > 0 ? money(totalComIva) : 'Preço sob consulta';
   }
   if ($('res-panels')) {
     $('res-panels').textContent = `${r.panels} ${r.panels === 1 ? 'painel' : 'painéis'} · ${fmt(r.pv)} kWp`;
