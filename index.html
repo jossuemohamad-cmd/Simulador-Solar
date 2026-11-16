@@ -21,7 +21,7 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="icon-192.png">
 
-  <link rel="stylesheet" href="style.css?v=20261116_07">
+  <link rel="stylesheet" href="style.css?v=20261116_08">
 </head>
 <body>
   <div class="app-shell">
@@ -142,6 +142,20 @@
         <div class="step-actions">
           <button type="button" class="btn-orange-full" onclick="openQuoteModal()">Pedir cotação</button>
           <button type="button" class="link-btn-center" onclick="go(0)">Editar dimensionamento</button>
+        </div>
+      </section>
+
+      <!-- PÁGINA DE OBRIGADO APÓS ENVIO -->
+      <section id="step3" class="step-section thankyou-section" hidden>
+        <div class="thankyou-box">
+          <div class="thankyou-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <h1 class="step-heading">Obrigado pelo seu pedido!</h1>
+          <p class="thankyou-text">A sua solicitação de proposta solar foi enviada e registada com sucesso. A nossa equipa técnica da LECASU entrará em contacto em breve.</p>
+        </div>
+        <div class="step-actions">
+          <button type="button" class="btn-orange-full" onclick="startNewProposal()">Fazer nova proposta</button>
         </div>
       </section>
 
@@ -273,9 +287,12 @@
       </div>
       <form id="custom-form" onsubmit="saveCustomModal(event)">
         <div class="modal-body">
-          <div class="form-group" id="custom-name-group">
+          <div class="form-group autocomplete-group" id="custom-name-group">
             <label for="custom-name">Nome do aparelho</label>
-            <input type="text" id="custom-name" placeholder="Ex.: Geleira, Bomba de água..." maxlength="60" required>
+            <div class="autocomplete-wrapper">
+              <input type="text" id="custom-name" placeholder="Ex.: Geleira, Bomba de água..." maxlength="60" autocomplete="off" oninput="onCustomNameInput(this.value)" required>
+              <div id="custom-suggestions" class="autocomplete-list" hidden></div>
+            </div>
           </div>
           <div class="form-row-2">
             <div class="form-group">
@@ -354,17 +371,26 @@
           </div>
         </div>
         <div class="modal-foot-col">
-          <button type="submit" class="btn-orange-full">Enviar pedido via WhatsApp</button>
-          <div class="modal-secondary-links">
-            <button type="button" class="link-btn" onclick="sendQuoteByEmail()">Enviar por E-mail</button>
-            <button type="button" class="link-btn" onclick="printProposalA4()">Imprimir Proposta A4</button>
+          <button type="submit" class="btn-whatsapp-official">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.23 8.23 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.4-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.24-.74-.66-1.24-1.48-1.39-1.73-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.43.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.36-.77-1.86-.2-.49-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.71 4.3 3.8 2.53 1.09 2.53.73 2.99.69.45-.05 1.47-.6 1.68-1.18.21-.59.21-1.09.15-1.19-.06-.1-.23-.16-.48-.28Z"/></svg>
+            <span>Enviar pedido via WhatsApp</span>
+          </button>
+          <div class="modal-secondary-grid">
+            <button type="button" class="btn-email-official" onclick="sendQuoteByEmail()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <span>Enviar por E-mail</span>
+            </button>
+            <button type="button" class="btn-print-official" onclick="printProposalA4()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              <span>Imprimir Proposta A4</span>
+            </button>
           </div>
         </div>
       </form>
     </div>
   </div>
 
-  <script src="shared-catalog.js?v=20261116_07"></script>
-  <script src="app.js?v=20261116_07"></script>
+  <script src="shared-catalog.js?v=20261116_08"></script>
+  <script src="app.js?v=20261116_08"></script>
 </body>
 </html>

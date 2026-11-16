@@ -152,6 +152,39 @@ async function syncCatalogFromServer() {
       }
     }
   } catch {}
+
+  try {
+    const appRes = await fetch('/api/appliances', { cache: 'no-store' });
+    const ct2 = appRes.headers.get('content-type') || '';
+    if (appRes.ok && ct2.includes('application/json')) {
+      const appData = await appRes.json();
+      if (appData && Array.isArray(appData.appliances)) {
+        mergeServerAppliances(appData.appliances);
+      }
+    }
+  } catch {}
+}
+
+function mergeServerAppliances(list) {
+  if (!Array.isArray(list)) return;
+  list.forEach((srv) => {
+    const normName = normalizeStr(srv.name);
+    const power = Math.round(Number(srv.power) || 0);
+    if (!normName || power <= 0) return;
+    const exists = catalog.some(
+      (item) => normalizeStr(item[1]) === normName && Math.round(Number(item[2])) === power
+    );
+    if (!exists) {
+      catalog.push([
+        'custom',
+        String(srv.name).trim().slice(0, 60),
+        power,
+        Number(srv.hours) || 2,
+        Number(srv.factor) || 1,
+        srv.essential !== undefined ? Boolean(srv.essential) : true
+      ]);
+    }
+  });
 }
 
 // Catálogo carregado (inicializa imediato via cache/padrão e sincroniza via API)
@@ -1172,6 +1205,7 @@ function go(n) {
     if (stepEl) stepEl.hidden = i !== n;
     if (pillEl) pillEl.className = 'tab-btn' + (i === n ? ' active' : '');
   }
+  if ($('step3')) $('step3').hidden = true;
 
   if (n === 1) {
     syncBackupRadioUI();
@@ -1474,12 +1508,111 @@ function selectExistingAppliance(idx) {
   render();
 }
 
+let autocompleteTimer = null;
+
+function hideCustomSuggestions() {
+  const box = $('custom-suggestions');
+  if (box) {
+    box.hidden = true;
+    box.replaceChildren();
+  }
+}
+
+function renderCustomSuggestions(items) {
+  const box = $('custom-suggestions');
+  if (!box) return;
+  box.replaceChildren();
+
+  if (!items || items.length === 0) {
+    box.hidden = true;
+    return;
+  }
+
+  items.slice(0, 6).forEach((item) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'autocomplete-item';
+
+    const label = document.createElement('span');
+    label.textContent = item.name;
+
+    const meta = document.createElement('small');
+    meta.textContent = `${item.power} W · ${item.hours} h/dia`;
+
+    btn.append(label, meta);
+    btn.onclick = () => {
+      if ($('custom-name')) $('custom-name').value = item.name;
+      if ($('custom-power')) $('custom-power').value = String(item.power);
+      if ($('custom-hours')) $('custom-hours').value = String(item.hours);
+      if ($('custom-essential')) $('custom-essential').checked = Boolean(item.essential);
+      hideCustomSuggestions();
+    };
+    box.append(btn);
+  });
+
+  box.hidden = false;
+}
+
+function onCustomNameInput(rawQuery) {
+  const q = normalizeStr(rawQuery);
+  if (!q || q.length < 1) {
+    hideCustomSuggestions();
+    return;
+  }
+
+  // Sugestões locais imediatas
+  const localMatches = catalog
+    .filter((item) => normalizeStr(item[1]).includes(q))
+    .map((item) => ({
+      name: item[1],
+      power: Math.round(Number(item[2]) || 100),
+      hours: Number(item[3]) || 2,
+      essential: item[5] !== undefined ? Boolean(item[5]) : true
+    }));
+  renderCustomSuggestions(localMatches);
+
+  // Busca AJAX em tempo real no servidor para aparelhos gravados por outros clientes
+  if (autocompleteTimer) clearTimeout(autocompleteTimer);
+  autocompleteTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/appliances?q=${encodeURIComponent(rawQuery.trim())}`, { cache: 'no-store' });
+      const ct = res.headers.get('content-type') || '';
+      if (!res.ok || !ct.includes('application/json')) return;
+      const data = await res.json();
+      if (!data || !Array.isArray(data.appliances)) return;
+
+      mergeServerAppliances(data.appliances);
+
+      // Só atualiza se o campo ainda tiver o mesmo texto
+      const currentVal = ($('custom-name') && $('custom-name').value) || '';
+      if (normalizeStr(currentVal) !== q) return;
+
+      const combined = [...localMatches];
+      data.appliances.forEach((srv) => {
+        const exists = combined.some(
+          (x) => normalizeStr(x.name) === normalizeStr(srv.name) && Number(x.power) === Number(srv.power)
+        );
+        if (!exists) {
+          combined.push({
+            name: srv.name,
+            power: Number(srv.power) || 100,
+            hours: Number(srv.hours) || 2,
+            essential: srv.essential !== undefined ? Boolean(srv.essential) : true
+          });
+        }
+      });
+      renderCustomSuggestions(combined);
+    } catch {}
+  }, 120);
+}
+
 function openCustomModal() {
   if ($('custom-name')) $('custom-name').value = '';
   if ($('custom-power')) $('custom-power').value = '200';
   if ($('custom-qty')) $('custom-qty').value = '1';
   if ($('custom-hours')) $('custom-hours').value = '2';
   if ($('custom-essential')) $('custom-essential').checked = true;
+  hideCustomSuggestions();
 
   const modal = $('custom-modal');
   if (modal) {
@@ -1491,8 +1624,20 @@ function openCustomModal() {
 }
 
 function closeCustomModal() {
+  hideCustomSuggestions();
   const modal = $('custom-modal');
   if (modal) modal.hidden = true;
+}
+
+function persistApplianceToServer(entry) {
+  try {
+    fetch('/api/appliances', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify(entry)
+    }).catch(() => {});
+  } catch {}
 }
 
 function saveCustomModal(event) {
@@ -1500,7 +1645,7 @@ function saveCustomModal(event) {
 
   const nameInput = $('custom-name');
   const name = ((nameInput && nameInput.value) || '').trim();
-  const power = Math.max(1, Math.min(50000, Number($('custom-power').value) || 200));
+  const power = Math.max(1, Math.min(50000, Math.round(Number($('custom-power').value) || 200)));
   const qty = Math.max(1, Math.min(100, Math.round(Number($('custom-qty').value) || 1)));
   const hours = Math.max(0.1, Math.min(24, Number($('custom-hours').value) || 1));
   const essential = Boolean($('custom-essential').checked);
@@ -1510,11 +1655,14 @@ function saveCustomModal(event) {
     return;
   }
 
-  const targetIdx = catalog.findIndex((item) => normalizeStr(item[1]) === normalizeStr(name));
+  // Verifica se já existe exatamente com o mesmo nome e mesma potência
+  const exactIdx = catalog.findIndex(
+    (item) => normalizeStr(item[1]) === normalizeStr(name) && Math.round(Number(item[2])) === power
+  );
 
-  if (targetIdx !== -1) {
-    const base = catalog[targetIdx];
-    chosen.set(targetIdx, {
+  if (exactIdx !== -1) {
+    const base = catalog[exactIdx];
+    chosen.set(exactIdx, {
       iconKey: base[0],
       name: base[1],
       w: power,
@@ -1525,21 +1673,64 @@ function saveCustomModal(event) {
     });
   } else {
     const newIndex = catalog.length;
-    catalog.push(['custom', name.slice(0, 60), power, hours, 1, essential]);
+    const cleanName = name.slice(0, 60);
+    catalog.push(['custom', cleanName, power, hours, 1, essential]);
     chosen.set(newIndex, {
       iconKey: 'custom',
-      name: name.slice(0, 60),
+      name: cleanName,
       w: power,
       h: hours,
       f: 1,
       q: qty,
       essential: essential
     });
+
+    // Grava no servidor (MySQL/JSON) para futuros clientes encontrarem em "Selecionar aparelho" e AJAX
+    persistApplianceToServer({
+      name: cleanName,
+      power,
+      hours,
+      factor: 1,
+      essential
+    });
   }
 
   closeCustomModal();
   hideValidationError(0);
   render();
+}
+
+function clearProposalState() {
+  localStorage.removeItem(STORAGE_KEY_SESSION);
+  chosen.clear();
+  if ($('client-name')) $('client-name').value = '';
+  if ($('client-phone')) $('client-phone').value = '';
+  if ($('location')) $('location').value = '';
+  if ($('project-type')) $('project-type').value = 'Residência';
+  selectedBackupHours = 4;
+  syncBackupRadioUI();
+  userSelections.panelId = null;
+  userSelections.inverterId = null;
+  userSelections.batteryId = null;
+}
+
+function showThankYouPage() {
+  closeQuoteModal();
+  clearProposalState();
+  for (let i = 0; i < 3; i++) {
+    const stepEl = $('step' + i);
+    const pillEl = $('s' + i);
+    if (stepEl) stepEl.hidden = true;
+    if (pillEl) pillEl.className = 'tab-btn';
+  }
+  if ($('step3')) $('step3').hidden = false;
+}
+
+function startNewProposal() {
+  clearProposalState();
+  if ($('step3')) $('step3').hidden = true;
+  render();
+  go(0);
 }
 
 function openQuoteModal() {
@@ -1569,14 +1760,16 @@ function submitQuoteForm(event) {
   const iva = Math.round(subtotal * 0.16);
   const totalComIva = subtotal + iva;
 
-  saveSimulationSession();
   submitQuoteToBackend('whatsapp');
   const textSummary = buildQuoteSummaryText(r, clientName, clientPhone, location, projType, backupHours, subtotal, iva, totalComIva);
-  closeQuoteModal();
   window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(textSummary)}`, '_blank', 'noopener');
+  showThankYouPage();
 }
 
 function sendQuoteByEmail() {
+  const form = document.querySelector('#quote-modal form');
+  if (form && !form.reportValidity()) return;
+
   const r = calculate();
   const clientName = ($('client-name') && $('client-name').value.trim()) || 'Cliente LECASU';
   const clientPhone = ($('client-phone') && $('client-phone').value.trim()) || 'Não informado';
@@ -1587,19 +1780,21 @@ function sendQuoteByEmail() {
   const iva = Math.round(subtotal * 0.16);
   const totalComIva = subtotal + iva;
 
-  saveSimulationSession();
   submitQuoteToBackend('email');
   const textSummary = buildQuoteSummaryText(r, clientName, clientPhone, location, projType, backupHours, subtotal, iva, totalComIva);
-  closeQuoteModal();
   window.location.href = `mailto:info@lecasu.co.mz?subject=${encodeURIComponent(`Pedido de Proposta Técnica — ${clientName} (${location})`)}&body=${encodeURIComponent(textSummary)}`;
+  showThankYouPage();
 }
 
 function printProposalA4() {
-  saveSimulationSession();
+  const form = document.querySelector('#quote-modal form');
+  if (form && !form.reportValidity()) return;
+
   result();
   submitQuoteToBackend('print_a4');
   closeQuoteModal();
   window.print();
+  showThankYouPage();
 }
 
 window.addEventListener('keydown', (e) => {

@@ -293,6 +293,7 @@ function createAppHandler(options = {}) {
   const CATALOG_FILE = path.join(DATA_DIR, 'catalog.json');
   const ADMIN_FILE = path.join(DATA_DIR, 'admin.json');
   const QUOTES_FILE = path.join(DATA_DIR, 'quotes.json');
+  const APPLIANCES_FILE = path.join(DATA_DIR, 'appliances.json');
   const SECRET_FILE = path.join(DATA_DIR, '.session_secret');
 
   const INITIAL_USER = (options.adminUser || process.env.ADMIN_USER || 'admin@lecasu.co.mz').trim();
@@ -304,6 +305,36 @@ function createAppHandler(options = {}) {
   let memoryCatalog = null;
   let memoryAdmin = null;
   let memoryQuotes = null;
+  let memoryAppliances = null;
+
+  function normalizeApplianceName(str) {
+    return String(str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  async function getSavedAppliances() {
+    if (db.isConfigured()) {
+      const dbList = await db.loadAppliances();
+      if (Array.isArray(dbList)) {
+        memoryAppliances = dbList;
+        return dbList;
+      }
+    }
+    if (Array.isArray(memoryAppliances)) return memoryAppliances;
+    if (fs.existsSync(APPLIANCES_FILE)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(APPLIANCES_FILE, 'utf8'));
+        if (Array.isArray(parsed)) {
+          memoryAppliances = parsed;
+          return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  }
 
   function getSessionSecret() {
     if (options.sessionSecret) return options.sessionSecret;
@@ -859,6 +890,66 @@ function createAppHandler(options = {}) {
         } catch {}
       }
       return sendJson(res, 200, { quotes });
+    }
+
+    if (pathname === '/api/appliances' && method === 'GET') {
+      const list = await getSavedAppliances();
+      let q = '';
+      try {
+        const parsedUrl = new URL(req.url || '/api/appliances', 'http://localhost');
+        q = normalizeApplianceName(parsedUrl.searchParams.get('q') || '');
+      } catch {}
+      const filtered = q
+        ? list.filter((item) => normalizeApplianceName(item.name).includes(q))
+        : list;
+      return sendJson(res, 200, { appliances: filtered });
+    }
+
+    if (pathname === '/api/appliances' && method === 'POST') {
+      try {
+        const body = await readJsonBody(req, 16 * 1024);
+        const name = String(body.name || '').trim().slice(0, 60);
+        const power = Math.max(1, Math.min(50000, Math.round(Number(body.power) || 0)));
+        const hours = Math.max(0.1, Math.min(24, Number(body.hours) || 2));
+        const factor = Math.max(0.1, Math.min(1, Number(body.factor) || 1));
+        const essential = body.essential !== undefined ? Boolean(body.essential) : true;
+
+        if (!name || name.length < 2) {
+          return sendJson(res, 400, { error: 'Nome do aparelho inválido.' });
+        }
+
+        const list = await getSavedAppliances();
+        const normName = normalizeApplianceName(name);
+        const existing = list.find(
+          (item) => normalizeApplianceName(item.name) === normName && Number(item.power) === power
+        );
+        if (existing) {
+          return sendJson(res, 200, { ok: true, appliance: existing, duplicate: true });
+        }
+
+        const entry = {
+          id: `app_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          name,
+          power,
+          hours,
+          factor,
+          essential,
+          createdAt: new Date().toISOString()
+        };
+
+        if (db.isConfigured()) {
+          await db.upsertAppliance(entry);
+        }
+
+        const updated = [...list, entry];
+        if (updated.length > 500) updated.splice(0, updated.length - 500);
+        memoryAppliances = updated;
+        writeJsonAtomic(APPLIANCES_FILE, updated);
+
+        return sendJson(res, 201, { ok: true, appliance: entry, duplicate: false });
+      } catch (err) {
+        return sendJson(res, err.statusCode || 400, { error: err.message });
+      }
     }
 
     return sendJson(res, 404, { error: 'Endpoint não encontrado.' });

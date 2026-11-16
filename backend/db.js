@@ -161,6 +161,20 @@ async function ensureSchema() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    await p.query(`
+      CREATE TABLE IF NOT EXISTS appliances (
+        id VARCHAR(120) NOT NULL,
+        name VARCHAR(120) NOT NULL,
+        power_w INT NOT NULL DEFAULT 100,
+        default_hours DECIMAL(5, 2) NOT NULL DEFAULT 2,
+        usage_factor DECIMAL(4, 2) NOT NULL DEFAULT 1,
+        essential_default TINYINT(1) NOT NULL DEFAULT 1,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_appliances_name (name)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     schemaReady = true;
     lastDbError = null;
     return true;
@@ -460,6 +474,62 @@ async function bootstrapDatabase(getInitialCatalogFn, getInitialAdminFn) {
   }
 }
 
+async function loadAppliances() {
+  if (!isConfigured()) return null;
+  const ok = await ensureSchema();
+  if (!ok) return null;
+
+  try {
+    const p = await getPool();
+    const [rows] = await p.query(
+      'SELECT id, name, power_w, default_hours, usage_factor, essential_default, created_at FROM appliances ORDER BY name ASC'
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      power: Number(r.power_w) || 100,
+      hours: Number(r.default_hours) || 2,
+      factor: Number(r.usage_factor) || 1,
+      essential: Boolean(r.essential_default),
+      createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString()
+    }));
+  } catch (err) {
+    lastDbError = err.message;
+    console.warn('Aviso MySQL (loadAppliances):', err.message);
+    return null;
+  }
+}
+
+async function upsertAppliance(entry) {
+  if (!isConfigured()) return false;
+  const ok = await ensureSchema();
+  if (!ok) return false;
+
+  try {
+    const p = await getPool();
+    await p.query(
+      `INSERT INTO appliances (id, name, power_w, default_hours, usage_factor, essential_default)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         default_hours = VALUES(default_hours),
+         essential_default = VALUES(essential_default)`,
+      [
+        entry.id,
+        entry.name,
+        Math.round(Number(entry.power) || 100),
+        Number(entry.hours) || 2,
+        Number(entry.factor) || 1,
+        entry.essential ? 1 : 0
+      ]
+    );
+    return true;
+  } catch (err) {
+    lastDbError = err.message;
+    console.warn('Aviso MySQL (upsertAppliance):', err.message);
+    return false;
+  }
+}
+
 function getStatus() {
   return {
     configured: isConfigured(),
@@ -479,6 +549,8 @@ module.exports = {
   saveAdmin,
   loadQuotes,
   insertQuote,
+  loadAppliances,
+  upsertAppliance,
   getStatus
 };
 
