@@ -3,18 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Dimensionamento e Cotação Solar | LECASU Moçambique</title>
+  <title>Dimensionamento Solar | LECASU Moçambique</title>
   <meta name="description" content="Dimensione o seu sistema solar fotovoltaico com inversores híbridos e baterias de lítio LiFePO4 para residências e comércios em Moçambique.">
   <meta name="author" content="LECASU LDA">
   <meta name="robots" content="index, follow">
 
-  <!-- Open Graph / Redes Sociais -->
-  <meta property="og:title" content="Dimensionamento e Cotação Solar | LECASU Moçambique">
+  <meta property="og:title" content="Dimensionamento Solar | LECASU Moçambique">
   <meta property="og:description" content="Calcule a potência, número de painéis e autonomia de baterias para a sua instalação solar em Moçambique.">
   <meta property="og:image" content="logo.png">
   <meta property="og:type" content="website">
 
-  <!-- PWA & Mobile Meta Tags -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ed6c24">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -23,569 +21,334 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="icon-192.png">
 
-  <link rel="stylesheet" href="style.css?v=20261111_23">
+  <link rel="stylesheet" href="style.css?v=20261116_01">
 </head>
 <body>
-  <div class="app-container">
-    <!-- Barra Superior Integrada -->
-    <header class="top-bar">
-      <div class="brand-badge">
-        <img src="logo.png" alt="Lecasu - Energy and Engineering Solutions" class="brand-logo-img">
-        <span class="tag">Dimensionamento Solar</span>
+  <div class="app-shell">
+    <!-- Cabeçalho Limpo -->
+    <header class="app-header">
+      <div class="brand-row">
+        <img src="logo.png" alt="Lecasu" class="brand-logo">
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <nav class="steps-nav" aria-label="Progresso do dimensionamento">
-          <button type="button" id="s0" class="step-pill active" onclick="tryGo(0)">01 · Aparelhos</button>
-          <button type="button" id="s1" class="step-pill" onclick="tryGo(1)">02 · Perfil & Autonomia</button>
-          <button type="button" id="s2" class="step-pill" onclick="tryGo(2)">03 · Dimensionamento & Proposta</button>
-        </nav>
-        <button type="button" class="btn-reset-sim" onclick="resetSimulation()" title="Limpar e Iniciar Novo Dimensionamento">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-          <span class="reset-text">Novo Dimensionamento</span>
-        </button>
-      </div>
+      <div class="app-title">Dimensionamento Solar</div>
+
+      <!-- Abas de Navegação -->
+      <nav class="tabs-nav" aria-label="Etapas do dimensionamento">
+        <button type="button" id="s0" class="tab-btn active" onclick="tryGo(0)">Aparelhos</button>
+        <button type="button" id="s1" class="tab-btn" onclick="tryGo(1)">Autonomia</button>
+        <button type="button" id="s2" class="tab-btn" onclick="tryGo(2)">Resultado</button>
+      </nav>
     </header>
 
-    <!-- Área de Conteúdo Principal -->
-    <main class="layout">
-      <!-- Painel Principal Interativo -->
-      <section class="card-panel">
-        
-        <!-- Passo 0: Catálogo e Seleção de Aparelhos -->
-        <div id="step0" class="content-scroll">
-          <h1>O que pretende ligar ao sistema solar?</h1>
-          <p>Escolha os aparelhos que quer alimentar para descobrir o dimensionamento técnico e a estimativa do investimento.</p>
+    <main class="main-content">
+      <!-- ETAPA 1: APARELHOS -->
+      <section id="step0" class="step-section">
+        <h1 class="step-heading">Que aparelhos quer alimentar?</h1>
+        <p class="step-subtitle">Indique a quantidade e as horas de uso por dia.</p>
 
-          <!-- Banner de Erro Passo 0 -->
-          <div id="val-step0" class="validation-banner" hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span id="val-step0-text">Por favor, seleccione pelo menos um aparelho com potência e horas superiores a zero.</span>
-          </div>
-
-          <!-- Barra de Pesquisa de Equipamentos -->
-          <div class="search-bar-container">
-            <div class="search-input-wrapper">
-              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" id="catalog-search" placeholder="Pesquisar aparelho (ex: geleira, tv, ar condicionado, bomba)..." oninput="filterCatalog(this.value)">
-              <button type="button" id="search-clear-btn" class="search-clear" onclick="clearSearch()" hidden aria-label="Limpar pesquisa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-            </div>
-            <span class="search-count" id="catalog-count">17 aparelhos</span>
-          </div>
-          
-          <!-- Catálogo Compacto com Tamanho Fixo -->
-          <div class="catalog-grid" id="catalog"></div>
-          
-          <!-- Lista de Aparelhos Selecionados -->
-          <div id="loads-section">
-            <div class="loads-section-title">
-              <b>Aparelhos no sistema (<span id="loads-count-badge">0</span>)</b>
-              <small style="color: var(--muted);">Ajuste quantidades e potências conforme as suas etiquetas</small>
-            </div>
-            <div id="loads"></div>
-          </div>
+        <div id="val-step0" class="validation-banner" hidden>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="val-step0-text">Seleccione pelo menos um aparelho com quantidade e horas superiores a zero.</span>
         </div>
 
-        <!-- Passo 1: Perfil do Cliente, Local e Autonomia -->
-        <div id="step1" class="content-scroll" hidden>
-          <h2>Perfil do Cliente & Instalação</h2>
-          <p>Preencha os dados do cliente e do local para gerarmos a proposta técnica do seu sistema solar fotovoltaico.</p>
-
-          <!-- Banner de Validação Passo 1 -->
-          <div id="val-step1" class="validation-banner" hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span id="val-step1-text">Por favor, preencha os campos obrigatórios assinalados antes de prosseguir.</span>
-          </div>
-          
-          <!-- Dados de Identificação -->
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label for="client-name">Nome do cliente / Responsável <span class="req">*</span></label>
-              <input id="client-name" type="text" placeholder="Ex.: Dr. Carlos Nhantumbo" maxlength="80" oninput="validateStep1Fields()">
-              <span id="client-name-error" class="field-error-text" hidden>O nome do cliente é obrigatório.</span>
-            </div>
-
-            <div class="form-group">
-              <label for="client-phone">Contacto / WhatsApp <span class="req">*</span></label>
-              <input id="client-phone" type="tel" placeholder="Ex.: +258 84 123 4567" maxlength="30" oninput="validateStep1Fields()">
-              <span id="client-phone-error" class="field-error-text" hidden>O contacto telefónico/WhatsApp é obrigatório.</span>
-            </div>
-          </div>
-
-          <!-- Local e Tipo de Projeto -->
-          <div class="form-grid-2" style="margin-top: 12px;">
-            <div class="form-group">
-              <label for="location">Local do projecto (Cidade / Província) <span class="req">*</span></label>
-              <input id="location" type="text" placeholder="Ex.: Matola-Rio, Maputo..." maxlength="100" oninput="validateStep1Fields()">
-              <span id="location-error" class="field-error-text" hidden>A localização do projecto é obrigatória.</span>
-              <div class="city-chips">
-                <button type="button" class="chip-btn" onclick="setLocation('Matola-Rio')">Matola-Rio</button>
-                <button type="button" class="chip-btn" onclick="setLocation('Maputo Cidade')">Maputo</button>
-                <button type="button" class="chip-btn" onclick="setLocation('Boane')">Boane</button>
-                <button type="button" class="chip-btn" onclick="setLocation('Beira')">Beira</button>
-                <button type="button" class="chip-btn" onclick="setLocation('Nampula')">Nampula</button>
-                <button type="button" class="chip-btn" onclick="setLocation('Tete')">Tete</button>
-                <button type="button" class="chip-btn" onclick="setLocation('Pemba')">Pemba</button>
-                <button type="button" class="chip-btn" onclick="setLocation('Inhambane')">Inhambane</button>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="project-type">Tipo de instalação / Imóvel <span class="req">*</span></label>
-              <select id="project-type" onchange="update()">
-                <option value="Residência" selected>Residência (Vivenda / Moradia)</option>
-                <option value="Condomínio">Condomínio Residencial</option>
-                <option value="Comércio / Loja">Comércio / Escritório / Loja</option>
-                <option value="Fábrica / Indústria">Fábrica / Indústria</option>
-                <option value="Quinta / Agrícola">Bomba Solar / Agro-pecuária</option>
-                <option value="Outro">Outro tipo de instalação</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Autonomia Desejada -->
-          <div style="margin-top: 12px;">
-            <div class="form-group">
-              <label for="backup">Autonomia desejada durante uma falha de energia (Rede EDM) <span class="req">*</span></label>
-              <select id="backup" onchange="update()">
-                <option value="0">0 horas (Apenas Autoconsumo Diurno / Sem Baterias)</option>
-                <option value="2">2 horas de autonomia</option>
-                <option value="4" selected>4 horas de autonomia</option>
-                <option value="8">8 horas de autonomia</option>
-                <option value="12">12 horas de autonomia</option>
-                <option value="24">24 horas (Sistema Off-Grid Completo)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="notice">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <div>A autonomia calcula o banco de baterias LiFePO4 para manter as cargas essenciais seleccionadas activas durante apagões ou falhas na rede da EDM.</div>
-          </div>
+        <div class="appliances-header">
+          <span>Aparelho</span>
+          <span class="col-center">Qtd.</span>
+          <span class="col-center">h/dia</span>
         </div>
 
-        <!-- Passo 2: Seleção de Modelos Oficiais, Orçamento e Proposta Técnica -->
-        <div id="step2" class="content-scroll" hidden>
-          <!-- SELEÇÃO DOS PRODUTOS CADASTRADOS NO ADMIN PELO CLIENTE -->
-          <div class="product-selection-box">
-            <div class="product-selection-header">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                <div>
-                  <b style="font-size: 13px; color: var(--ink);">Personalize os Modelos dos Equipamentos</b>
-                  <small style="display: block; color: var(--muted); font-size: 11px;">Escolha as marcas e modelos específicos cadastrados no catálogo oficial da LECASU</small>
-                </div>
-              </div>
-            </div>
+        <div id="appliances-list" class="appliances-list"></div>
 
-            <div class="product-selectors-grid">
-              <!-- Seletor de Painel Solar -->
-              <div class="selector-card">
-                <label for="select-panel">
-                  <span>Módulo Fotovoltaico</span>
-                  <div style="display: flex; gap: 4px; align-items: center;">
-                    <strong id="badge-panel-qty" class="qty-pill">0 un.</strong>
-                  </div>
-                </label>
-                <div class="selector-card-body">
-                  <div class="selector-prod-thumb">
-                    <img id="img-panel-thumb" src="img/products/panel-jinko.png" alt="Painel Solar">
-                  </div>
-                  <div class="selector-card-inputs">
-                    <select id="select-panel" onchange="onSelectProduct('panel', this.value)"></select>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Seletor de Inversor -->
-              <div class="selector-card">
-                <label for="select-inverter">
-                  <span>Inversor Híbrido &amp; Controlador</span>
-                  <div style="display: flex; gap: 4px; align-items: center;">
-                    <strong id="badge-inverter-qty" class="qty-pill">1 un.</strong>
-                  </div>
-                </label>
-                <div class="selector-card-body">
-                  <div class="selector-prod-thumb">
-                    <img id="img-inv-thumb" src="img/products/inv-deye.png" alt="Inversor Híbrido">
-                  </div>
-                  <div class="selector-card-inputs">
-                    <select id="select-inverter" onchange="onSelectProduct('inverter', this.value)"></select>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Seletor de Bateria -->
-              <div class="selector-card">
-                <label for="select-battery">
-                  <span>Baterias &amp; Armazenamento (BESS)</span>
-                  <div style="display: flex; gap: 4px; align-items: center;">
-                    <strong id="badge-battery-qty" class="qty-pill">0 un.</strong>
-                  </div>
-                </label>
-                <div class="selector-card-body">
-                  <div class="selector-prod-thumb">
-                    <img id="img-bat-thumb" src="img/products/bat-deye.jpg" alt="Baterias LiFePO4">
-                  </div>
-                  <div class="selector-card-inputs">
-                    <select id="select-battery" onchange="onSelectProduct('battery', this.value)"></select>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tabela de Orçamento Técnico e Comercial -->
-          <h3>Orçamento técnico e comercial detalhado · MZN</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Componente do Sistema</th>
-                <th>Valor estimado</th>
-              </tr>
-            </thead>
-            <tbody id="quote"></tbody>
-          </table>
-          
-          <p class="small" style="margin-top: 6px;">Valores orçados com base nos preços dos modelos selecionados acima (margem de ±20%). Inclui IVA à taxa legal de 16%. Não inclui transporte interprovincial nem obras civis de alvenaria.</p>
-
-          <div id="limit" class="notice" hidden>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <div>Esta potência ultrapassa o patamar residencial típico. O sistema requer projeto industrial de engenharia e vistoria presencial da LECASU.</div>
-          </div>
-
-          <!-- Botões de Ação Imediata (WhatsApp, E-mail, Copiar, Imprimir) -->
-          <div class="action-buttons-group">
-            <div class="action-grid-2">
-              <a id="whatsapp-btn" class="btn btn-whatsapp" target="_blank" rel="noopener">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.23 8.23 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.4-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.24-.74-.66-1.24-1.48-1.39-1.73-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.43.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.36-.77-1.86-.2-.49-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.71 4.3 3.8 2.53 1.09 2.53.73 2.99.69.45-.05 1.47-.6 1.68-1.18.21-.59.21-1.09.15-1.19-.06-.1-.23-.16-.48-.28Z"/></svg>
-                Enviar via WhatsApp
-              </a>
-              <a id="contact" class="btn btn-primary">
-                Pedir Proposta por E-mail
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              </a>
-            </div>
-
-            <div class="action-grid-2">
-              <button type="button" class="btn btn-secondary" onclick="copyTechnicalSummary()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                Copiar Resumo Técnico
-              </button>
-              <button type="button" class="btn btn-secondary" onclick="window.print()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                Imprimir Proposta A4
-              </button>
-            </div>
-            
-            <span id="copy-feedback" class="small" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center; color: var(--orange-hover); font-weight: 600;" hidden><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Resumo copiado para a área de transferência!</span>
-          </div>
-
-          <!-- DOCUMENTO FORMAL A4 EXCLUSIVO PARA IMPRESSÃO -->
-          <div class="print-only-a4">
-            <div class="print-header">
-              <div class="print-logo-box">
-                <img src="logo.png" alt="Lecasu" style="height: 40px; width: auto; margin-bottom: 3px; display: block;">
-                <div style="font-size: 8pt; color: #666;">Matola-Rio, Província de Maputo · Moçambique</div>
-              </div>
-              <div class="print-meta">
-                <strong style="font-size: 11pt; color: #1a2421;">ESTUDO TÉCNICO PRELIMINAR</strong><br>
-                Proposta: <span id="print-prop-code">LEC-2026-0001</span><br>
-                Data: <span id="print-date"></span><br>
-                Contacto: info@lecasu.co.mz · (+258) 84 500 2026
-              </div>
-            </div>
-
-            <!-- Dados do Cliente -->
-            <div class="print-client-card">
-              <div><strong>Cliente / Titular:</strong> <span id="print-client-name">-</span></div>
-              <div><strong>Contacto / WhatsApp:</strong> <span id="print-client-phone">-</span></div>
-              <div><strong>Localidade do Projecto:</strong> <span id="print-location">-</span></div>
-              <div><strong>Tipo de Instalação:</strong> <span id="print-project-type">-</span></div>
-            </div>
-
-            <!-- Resumo Técnico de Engenharia -->
-            <div style="margin-bottom: 6px; font-weight: bold; font-size: 10pt; color: #ed6c24;">1. DIMENSIONAMENTO TÉCNICO RECOMENDADO</div>
-            <div class="print-grid-cards">
-              <div class="print-stat">
-                <small>Potência Fotovoltaica</small>
-                <strong id="print-pv">0 kWp</strong>
-                <span id="print-panels">0 painéis</span>
-              </div>
-              <div class="print-stat">
-                <small>Inversor Híbrido</small>
-                <strong id="print-inv">0 kW</strong>
-                <span id="print-inv-model">Capacidade nominal</span>
-              </div>
-              <div class="print-stat">
-                <small>Bateria LiFePO4</small>
-                <strong id="print-bat">0 kWh</strong>
-                <span id="print-bat-modules">0 módulos</span>
-              </div>
-              <div class="print-stat">
-                <small>Autonomia em Falha</small>
-                <strong id="print-backup">4 horas</strong>
-                <span>Cargas essenciais</span>
-              </div>
-            </div>
-
-            <div class="print-client-card" style="margin-top: 6px; background: #fdfaf7; border-color: #fed7aa;">
-              <div><strong>Geração Estimada:</strong> <span id="print-gen-monthly">0 kWh/mês</span></div>
-              <div><strong>Poupança Estimada EDM:</strong> <span id="print-savings-monthly">0 MT/mês</span></div>
-              <div><strong>Emissões Evitadas:</strong> <span id="print-co2">0 ton CO₂/ano</span></div>
-              <div><strong>Autonomia Solicitada:</strong> <span id="print-client-autonomy">12h</span></div>
-            </div>
-
-            <!-- Orçamento Estimado -->
-            <div style="margin-top: 14px; margin-bottom: 6px; font-weight: bold; font-size: 10pt; color: #ed6c24;">2. ORÇAMENTO TÉCNICO E COMERCIAL</div>
-            <table style="width: 100%;">
-              <thead>
-                <tr style="background: #f0f3ee;">
-                  <th>Item / Equipamento Selecionado</th>
-                  <th style="text-align: right;">Valor Orçamentado (MZN)</th>
-                </tr>
-              </thead>
-              <tbody id="print-quote-tbody"></tbody>
-            </table>
-
-            <div class="print-footer-terms">
-              <strong>Condições e Notas Técnicas:</strong> Os valores acima representam a estimativa orçamental técnica com discriminação do IVA à taxa legal de 16% em vigor em Moçambique (margem de ±20%). O dimensionamento definitivo de proteções, quadros de transferência automática (ATS), cabeamento e compatibilidade estrutural será confirmado após inspeção técnica da engenharia da LECASU.
-            </div>
-
-            <div class="print-signature-box">
-              <div class="print-sign-line">Engenharia LECASU</div>
-              <div class="print-sign-line">O Cliente / Aprovador</div>
-            </div>
-          </div>
-
+        <div class="add-other-row">
+          <button type="button" class="link-btn" onclick="openCustomModal()">+ Outro aparelho</button>
         </div>
 
-        <!-- Barra Inferior de Ações Compartilhada -->
-        <div class="actions-footer">
-          <!-- Ações Passo 0 -->
-          <div id="actions-step0" style="display: flex; justify-content: space-between; width: 100%;">
-            <button type="button" class="btn btn-secondary" onclick="openCustomModal()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              + Outro aparelho
-            </button>
-            <button type="button" class="btn btn-primary" onclick="go(1)">
-              Continuar
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </button>
-          </div>
-
-          <!-- Ações Passo 1 -->
-          <div id="actions-step1" style="display: none; justify-content: space-between; width: 100%;">
-            <button type="button" class="btn btn-secondary" onclick="go(0)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-              Voltar
-            </button>
-            <button type="button" class="btn btn-primary" onclick="go(2)">
-              Calcular Dimensionamento e Proposta
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </button>
-          </div>
-
-          <!-- Ações Passo 2 -->
-          <div id="actions-step2" style="display: none; justify-content: space-between; width: 100%;">
-            <button type="button" class="btn btn-secondary" onclick="go(1)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-              Editar perfil
-            </button>
-            <button type="button" class="btn btn-primary" onclick="window.print()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-              Imprimir Folha A4
-            </button>
-          </div>
+        <div class="daily-summary-row">
+          <span class="daily-summary-label">Consumo diário estimado</span>
+          <strong id="daily-kwh-summary" class="daily-summary-value">0,0 kWh/dia</strong>
         </div>
 
+        <div class="step-actions">
+          <button type="button" class="btn-orange-full" onclick="go(1)">Continuar</button>
+        </div>
       </section>
 
-      <!-- Painel Lateral de Resumo APRIMORADO (Live Engineering Panel) -->
-      <aside class="summary-panel" aria-label="Painel de dimensionamento ao vivo">
-        <div class="summary-scroll">
-          <div class="summary-tag">PAINEL DE ENGENHARIA AO VIVO</div>
-          <h2>Dimensionamento em Tempo Real</h2>
+      <!-- ETAPA 2: AUTONOMIA -->
+      <section id="step1" class="step-section" hidden>
+        <h1 class="step-heading">Quanto tempo precisa de energia durante um corte?</h1>
 
-          <!-- Card do Cliente e Instalação -->
-          <div class="summary-client-box">
-            <div class="summary-client-line">
-              <svg class="summary-icon-mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <b id="sum-client-name">A definir</b>
-            </div>
-            <div class="summary-client-meta">
-              <span id="sum-location">Moçambique</span> · <span id="sum-type">Residência</span>
-            </div>
+        <div class="autonomy-options" role="radiogroup" aria-label="Horas de autonomia durante cortes">
+          <label class="radio-card" data-hours="2">
+            <input type="radio" name="backup-choice" value="2" onchange="onSelectBackup(2)">
+            <span class="radio-dot" aria-hidden="true"></span>
+            <span class="radio-label">2 horas</span>
+          </label>
+          <label class="radio-card selected" data-hours="4">
+            <input type="radio" name="backup-choice" value="4" checked onchange="onSelectBackup(4)">
+            <span class="radio-dot" aria-hidden="true"></span>
+            <span class="radio-label">4 horas</span>
+          </label>
+          <label class="radio-card" data-hours="8">
+            <input type="radio" name="backup-choice" value="8" onchange="onSelectBackup(8)">
+            <span class="radio-dot" aria-hidden="true"></span>
+            <span class="radio-label">8 horas</span>
+          </label>
+          <label class="radio-card" data-hours="12">
+            <input type="radio" name="backup-choice" value="12" onchange="onSelectBackup(12)">
+            <span class="radio-dot" aria-hidden="true"></span>
+            <span class="radio-label">12 horas</span>
+          </label>
+        </div>
+
+        <p class="autonomy-note">A bateria alimenta os aparelhos que seleccionou para os cortes.</p>
+
+        <div class="step-actions">
+          <button type="button" class="btn-orange-full" onclick="go(2)">Ver estimativa</button>
+          <button type="button" class="link-btn-center" onclick="go(0)">Voltar</button>
+        </div>
+      </section>
+
+      <!-- ETAPA 3: RESULTADO -->
+      <section id="step2" class="step-section" hidden>
+        <h1 class="step-heading">Estimativa do sistema</h1>
+
+        <div class="estimate-label">Investimento estimado</div>
+        <div id="result-price" class="estimate-price">Preço sob consulta</div>
+
+        <div class="result-specs-table">
+          <div class="result-spec-row">
+            <span>Painéis solares</span>
+            <strong id="res-panels">0 painéis · 0 kWp</strong>
           </div>
-
-          <!-- Métricas Primárias de Carga (Grid Compacta de 3 Colunas) -->
-          <div class="summary-metrics-grid">
-            <div class="sm-item">
-              <small>Aparelhos</small>
-              <strong id="count">0</strong>
-            </div>
-            <div class="sm-item">
-              <small>Consumo/Dia</small>
-              <strong id="energy">0 kWh</strong>
-            </div>
-            <div class="sm-item">
-              <small>Potência Pico</small>
-              <strong id="power">0 kW</strong>
-            </div>
+          <div class="result-spec-row">
+            <span>Inversor híbrido</span>
+            <strong id="res-inverter">0 kW</strong>
           </div>
-
-          <!-- Live Engineering Box: Equipamentos Projetados -->
-          <div class="summary-spec-box">
-            <div class="spec-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="12" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="15"/><line x1="15" y1="3" x2="15" y2="15"/><line x1="12" y1="15" x2="12" y2="19"/></svg>
-              <span>EQUIPAMENTOS PRELIMINARES</span>
-            </div>
-            <div class="spec-row">
-              <span>Módulos Fotovoltaicos:</span>
-              <strong id="side-pv">0 kWp (0 painéis)</strong>
-            </div>
-            <div class="spec-row">
-              <span>Inversor Híbrido:</span>
-              <strong id="side-inv">0 kW Híbrido</strong>
-            </div>
-            <div class="spec-row">
-              <span>Armazenamento:</span>
-              <strong id="side-bat">0 kWh LiFePO4</strong>
-            </div>
-            <div class="spec-row">
-              <span>Geração Média Estimada:</span>
-              <strong id="side-gen-monthly" class="val-success">0 kWh/mês</strong>
-            </div>
-            <div class="spec-row">
-              <span>Poupança Est. EDM:</span>
-              <strong id="side-savings-monthly" class="val-accent">0 MT/mês</strong>
-            </div>
-            <div class="spec-row">
-              <span>Impacto Ambiental:</span>
-              <strong id="side-co2-annual" class="val-success">0 ton CO₂/ano</strong>
-            </div>
-          </div>
-
-          <!-- Live Budget Box: Valor do Sistema Oficial com IVA (16%) -->
-          <div class="summary-budget-highlight">
-            <div class="budget-sub" id="side-budget-title">VALOR DO SISTEMA (COM IVA)</div>
-            <div class="budget-value" id="side-total-cost">0 MT</div>
-
-            <div class="budget-iva-box" id="side-iva-breakdown">
-              <div class="iva-row">
-                <span>Subtotal (Sem IVA):</span>
-                <strong id="side-subtotal">0 MT</strong>
-              </div>
-              <div class="iva-row iva-tax">
-                <span>IVA Legal (16%):</span>
-                <strong id="side-iva">0 MT</strong>
-              </div>
-              <div class="iva-row iva-total">
-                <span>Total com IVA:</span>
-                <strong id="side-total-iva">0 MT</strong>
-              </div>
-            </div>
-
-            <div class="budget-terms" id="side-budget-terms">Estimativa preliminar (±20%) · Inclui 16% de IVA</div>
-          </div>
-
-          <!-- Indicador de Cargas Essenciais com Bateria -->
-          <div class="summary-battery-status">
-            <div class="bat-status-header">
-              <span>Cobertura de bateria em cortes:</span>
-              <b id="side-bat-coverage">0% das cargas</b>
-            </div>
-            <div class="bat-progress-bar">
-              <div id="side-bat-fill" class="bat-progress-fill" style="width: 0%;"></div>
-            </div>
-          </div>
-
-          <!-- Selo de Garantia e Engenharia LECASU -->
-          <div class="summary-guarantee-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-            <div>
-              <strong>Engenharia & Suporte LECASU</strong>
-              <div>Garantia de até 25 anos nos painéis solares · Assistência técnica no Grande Maputo e Matola.</div>
-            </div>
+          <div class="result-spec-row">
+            <span>Bateria</span>
+            <strong id="res-battery">0 kWh</strong>
           </div>
         </div>
 
-        <div class="summary-footer">
-          <span>LECASU · Moçambique</span>
-          <span>info@lecasu.co.mz</span>
-        </div>
-      </aside>
-    </main>
+        <p class="result-caption">Capacidades ilustrativas</p>
 
-    <!-- Barra Mobile Inferior Flutuante -->
-    <div class="mobile-bottom-bar" id="mobile-summary-bar">
-      <div class="mob-info">
-        <span class="mob-label">Investimento Est.:</span>
-        <strong id="mob-total-cost">0 MT</strong>
-        <span class="mob-sub" id="mob-pv-inv">0 kWp · 0 kW</span>
+        <div class="step-actions">
+          <button type="button" class="btn-orange-full" onclick="openQuoteModal()">Pedir cotação</button>
+          <button type="button" class="link-btn-center" onclick="go(0)">Editar dimensionamento</button>
+        </div>
+      </section>
+
+      <!-- DOCUMENTO FORMAL A4 EXCLUSIVO PARA IMPRESSÃO -->
+      <div class="print-only-a4">
+        <div class="print-header">
+          <div class="print-logo-box">
+            <img src="logo.png" alt="Lecasu" style="height: 40px; width: auto; margin-bottom: 3px; display: block;">
+            <div style="font-size: 8pt; color: #666;">Matola-Rio, Província de Maputo · Moçambique</div>
+          </div>
+          <div class="print-meta">
+            <strong style="font-size: 11pt; color: #1a2421;">ESTUDO TÉCNICO PRELIMINAR</strong><br>
+            Proposta: <span id="print-prop-code">LEC-2026-0001</span><br>
+            Data: <span id="print-date"></span><br>
+            Contacto: info@lecasu.co.mz · (+258) 84 500 2026
+          </div>
+        </div>
+
+        <div class="print-client-card">
+          <div><strong>Cliente / Titular:</strong> <span id="print-client-name">-</span></div>
+          <div><strong>Contacto / WhatsApp:</strong> <span id="print-client-phone">-</span></div>
+          <div><strong>Localidade do Projecto:</strong> <span id="print-location">-</span></div>
+          <div><strong>Tipo de Instalação:</strong> <span id="print-project-type">-</span></div>
+        </div>
+
+        <div style="margin-bottom: 6px; font-weight: bold; font-size: 10pt; color: #ed6c24;">1. DIMENSIONAMENTO TÉCNICO RECOMENDADO</div>
+        <div class="print-grid-cards">
+          <div class="print-card">
+            <small>GERAÇÃO SOLAR</small>
+            <strong id="print-pv">0 kWp</strong>
+            <div id="print-panels" style="font-size: 8pt; color: #555; margin-top: 2px;">0 painéis</div>
+          </div>
+          <div class="print-card">
+            <small>INVERSOR HÍBRIDO</small>
+            <strong id="print-inv">0 kW</strong>
+            <div id="print-inv-model" style="font-size: 8pt; color: #555; margin-top: 2px;">Modelo Híbrido</div>
+          </div>
+          <div class="print-card">
+            <small>ARMAZENAMENTO BESS</small>
+            <strong id="print-bat">0 kWh</strong>
+            <div id="print-bat-modules" style="font-size: 8pt; color: #555; margin-top: 2px;">Módulos LiFePO4</div>
+          </div>
+          <div class="print-card">
+            <small>AUTONOMIA EM CORTES</small>
+            <strong id="print-backup">4 horas</strong>
+            <div style="font-size: 8pt; color: #555; margin-top: 2px;">Cargas Essenciais</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 6px; font-weight: bold; font-size: 10pt; color: #ed6c24;">2. RENDIMENTO E IMPACTO ECONÓMICO ESTIMADO</div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px;">
+          <div class="print-card">
+            <small>GERAÇÃO MENSAL</small>
+            <strong id="print-gen-monthly">0 kWh/mês</strong>
+          </div>
+          <div class="print-card">
+            <small>POUPANÇA EST. EDM</small>
+            <strong id="print-savings-monthly">0 MT/mês</strong>
+          </div>
+          <div class="print-card">
+            <small>CO₂ EVITADO</small>
+            <strong id="print-co2">0 ton/ano</strong>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 6px; font-weight: bold; font-size: 10pt; color: #ed6c24;">3. ORÇAMENTO DISCRIMINADO (MOÇAMBIQUE - MZN)</div>
+        <table class="print-table">
+          <thead>
+            <tr>
+              <th>Descrição dos Equipamentos e Serviços</th>
+              <th style="text-align: right;">Valor Estimado (MZN)</th>
+            </tr>
+          </thead>
+          <tbody id="print-quote-tbody"></tbody>
+        </table>
+
+        <div class="print-footer-terms">
+          <strong>Condições e Notas:</strong> Os valores acima representam a estimativa orçamental com discriminação do IVA à taxa legal de 16% em vigor em Moçambique (margem de ±20%). O dimensionamento definitivo será confirmado após inspeção presencial da equipa LECASU.
+        </div>
+
+        <div class="print-signature-box">
+          <div class="print-sign-line">Engenharia LECASU</div>
+          <div class="print-sign-line">O Cliente / Aprovador</div>
+        </div>
       </div>
-      <button type="button" class="btn btn-primary btn-sm" onclick="toggleMobileSummaryModal()">
-        Ver Painel
-      </button>
+    </main>
+  </div>
+
+  <!-- MODAL: AJUSTAR APARELHO -->
+  <div id="adjust-modal" class="modal-backdrop" hidden onclick="handleModalBackdrop(event, 'adjust-modal')">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="adjust-modal-title">
+      <div class="modal-head">
+        <h3 id="adjust-modal-title">Ajustar Aparelho</h3>
+        <button type="button" class="modal-close" onclick="closeAdjustModal()" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="saveAdjustModal(event)">
+        <div class="modal-body">
+          <input type="hidden" id="adjust-index">
+          <div class="form-group">
+            <label for="adjust-power">Potência unitária (Watts)</label>
+            <input type="number" id="adjust-power" min="1" max="50000" required>
+          </div>
+          <label class="checkbox-row">
+            <input type="checkbox" id="adjust-essential">
+            <span>Manter ligado na bateria durante cortes</span>
+          </label>
+        </div>
+        <div class="modal-foot">
+          <button type="button" id="adjust-remove-btn" class="link-btn-danger" onclick="removeAdjustedAppliance()" hidden>Remover</button>
+          <div style="display: flex; gap: 10px; margin-left: auto;">
+            <button type="button" class="btn-outline" onclick="closeAdjustModal()">Cancelar</button>
+            <button type="submit" class="btn-orange-sm">Guardar</button>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 
-
-
-  <!-- Modal Popup para Aparelho Personalizado do Cliente -->
-  <div id="custom-modal" class="modal-backdrop" hidden onclick="handleBackdropClick(event)">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div class="modal-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          </div>
-          <h3 id="modal-title">Adicionar Aparelho Personalizado</h3>
-        </div>
-        <button type="button" class="btn-close-modal" onclick="closeCustomModal()" aria-label="Fechar">
+  <!-- MODAL: OUTRO APARELHO -->
+  <div id="custom-modal" class="modal-backdrop" hidden onclick="handleModalBackdrop(event, 'custom-modal')">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="custom-modal-title">
+      <div class="modal-head">
+        <h3 id="custom-modal-title">Adicionar Aparelho</h3>
+        <button type="button" class="modal-close" onclick="closeCustomModal()" aria-label="Fechar">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <form id="custom-form" onsubmit="saveCustomModal(event)">
         <div class="modal-body">
           <div class="form-group">
-            <label for="custom-name">Nome do aparelho <span class="req">*</span></label>
-            <input type="text" id="custom-name" placeholder="Ex.: Micro-ondas, Bomba de piscina, etc." required maxlength="60">
-            <span class="field-error-text" id="custom-name-error" hidden></span>
+            <label for="catalog-picker">Escolher aparelho</label>
+            <select id="catalog-picker" onchange="onPickCatalogItem(this.value)"></select>
           </div>
-
+          <div class="form-group" id="custom-name-group" hidden>
+            <label for="custom-name">Nome do aparelho</label>
+            <input type="text" id="custom-name" placeholder="Ex.: Bomba de piscina" maxlength="60">
+          </div>
           <div class="form-row-2">
             <div class="form-group">
-              <label for="custom-power">Potência (Watts) <span class="req">*</span></label>
-              <input type="number" id="custom-power" min="1" max="50000" required value="200" placeholder="Ex.: 200">
+              <label for="custom-power">Potência (W)</label>
+              <input type="number" id="custom-power" min="1" max="50000" value="200" required>
             </div>
             <div class="form-group">
-              <label for="custom-qty">Quantidade <span class="req">*</span></label>
+              <label for="custom-qty">Qtd.</label>
               <input type="number" id="custom-qty" min="1" max="100" value="1" required>
             </div>
           </div>
-
           <div class="form-group">
-            <label for="custom-hours">Horas de uso diárias (h) <span class="req">*</span></label>
+            <label for="custom-hours">Horas por dia (h/dia)</label>
             <input type="number" id="custom-hours" min="0.1" max="24" step="0.25" value="2" required>
           </div>
-
-          <label class="checkbox-label" style="margin-top: 6px;">
+          <label class="checkbox-row">
             <input type="checkbox" id="custom-essential" checked>
-            <span>Manter ligado com bateria durante falhas de rede</span>
+            <span>Manter ligado na bateria durante cortes</span>
           </label>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="closeCustomModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            Adicionar Aparelho
-          </button>
+        <div class="modal-foot">
+          <button type="button" class="btn-outline" onclick="closeCustomModal()">Cancelar</button>
+          <button type="submit" class="btn-orange-sm">Adicionar</button>
         </div>
       </form>
     </div>
   </div>
 
-  <script src="shared-catalog.js?v=20261113_07"></script>
-  <script src="app.js?v=20261113_07"></script>
+  <!-- MODAL: PEDIR COTAÇÃO -->
+  <div id="quote-modal" class="modal-backdrop" hidden onclick="handleModalBackdrop(event, 'quote-modal')">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="quote-modal-title">
+      <div class="modal-head">
+        <h3 id="quote-modal-title">Pedir cotação oficial</h3>
+        <button type="button" class="modal-close" onclick="closeQuoteModal()" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="submitQuoteForm(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="client-name">Nome completo</label>
+            <input id="client-name" type="text" placeholder="Ex.: Carlos Nhantumbo" maxlength="80" required>
+          </div>
+          <div class="form-group">
+            <label for="client-phone">Contacto / WhatsApp</label>
+            <input id="client-phone" type="tel" placeholder="Ex.: +258 84 123 4567" maxlength="30" required>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="location">Localidade / Cidade</label>
+              <input id="location" type="text" placeholder="Ex.: Matola-Rio" maxlength="100" required>
+            </div>
+            <div class="form-group">
+              <label for="project-type">Tipo de imóvel</label>
+              <select id="project-type">
+                <option value="Residência" selected>Residência</option>
+                <option value="Condomínio">Condomínio</option>
+                <option value="Comércio / Loja">Comércio / Loja</option>
+                <option value="Fábrica / Indústria">Fábrica / Indústria</option>
+                <option value="Quinta / Agrícola">Agrícola</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot-col">
+          <button type="submit" class="btn-orange-full">Enviar pedido via WhatsApp</button>
+          <div class="modal-secondary-links">
+            <button type="button" class="link-btn" onclick="sendQuoteByEmail()">Enviar por E-mail</button>
+            <button type="button" class="link-btn" onclick="printProposalA4()">Imprimir Proposta A4</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="shared-catalog.js?v=20261116_01"></script>
+  <script src="app.js?v=20261116_01"></script>
 </body>
 </html>

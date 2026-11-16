@@ -177,7 +177,7 @@ function saveSimulationSession() {
       clientPhone: ($('client-phone') && $('client-phone').value) || '',
       location: ($('location') && $('location').value) || '',
       projectType: ($('project-type') && $('project-type').value) || 'Residência',
-      backupHours: ($('backup') && $('backup').value) || '4',
+      backupHours: String(selectedBackupHours),
       userSelections: userSelections,
       currentStep: currentStep,
       customCatalog: catalog.filter((item) => item[0] === 'custom')
@@ -188,10 +188,21 @@ function saveSimulationSession() {
   }
 }
 
+function applyDefaultDemoLoads() {
+  // Valores iniciais práticos: 6x Lâmpada LED (5h), 1x Geleira (24h), 1x Televisão (4h)
+  chosen.clear();
+  chosen.set(0, { iconKey: catalog[0][0], name: catalog[0][1], w: catalog[0][2], h: 5, f: catalog[0][4], q: 6, essential: true });
+  chosen.set(2, { iconKey: catalog[2][0], name: catalog[2][1], w: catalog[2][2], h: 24, f: catalog[2][4], q: 1, essential: true });
+  chosen.set(1, { iconKey: catalog[1][0], name: catalog[1][1], w: catalog[1][2], h: 4, f: catalog[1][4], q: 1, essential: true });
+}
+
 function loadSimulationSession() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SESSION);
-    if (!raw) return 0;
+    if (!raw) {
+      applyDefaultDemoLoads();
+      return 0;
+    }
     const data = JSON.parse(raw);
 
     // 1. Restaurar aparelhos personalizados do catálogo
@@ -210,57 +221,45 @@ function loadSimulationSession() {
       });
     }
 
-    // 3. Restaurar campos do formulário
+    // 3. Restaurar campos do formulário e autonomia
     if ($('client-name') && data.clientName) $('client-name').value = data.clientName;
     if ($('client-phone') && data.clientPhone) $('client-phone').value = data.clientPhone;
     if ($('location') && data.location) $('location').value = data.location;
     if ($('project-type') && data.projectType) $('project-type').value = data.projectType;
-    if ($('backup') && data.backupHours) $('backup').value = data.backupHours;
+    if (data.backupHours !== undefined) {
+      const parsedH = Number(data.backupHours);
+      if ([2, 4, 8, 12].includes(parsedH)) {
+        selectedBackupHours = parsedH;
+      }
+    }
 
-    // 4. Restaurar seleções do cliente com validação contra produtos obsoletos
+    // 4. Restaurar seleções do cliente
     if (data.userSelections) {
       userSelections.panelId = data.userSelections.panelId || null;
       userSelections.inverterId = data.userSelections.inverterId || null;
       userSelections.batteryId = data.userSelections.batteryId || null;
-
-      const obsoletePanels = ['p_jinko_570', 'p_canadian_550', 'p_ja_580', 'p_longi_540'];
-      if (obsoletePanels.includes(userSelections.panelId)) {
-        userSelections.panelId = 'p_jinko_tiger_neo_600_bdv';
-      }
-      const obsoleteInverters = ['inv_deye_5k', 'inv_deye_6k', 'inv_deye_8k', 'inv_deye_10k', 'inv_deye_12k', 'inv_growatt_5k', 'inv_victron_15k', 'inv_huawei_20k'];
-      if (obsoleteInverters.includes(userSelections.inverterId)) {
-        userSelections.inverterId = 'inv_deye_12k_3ph_lv';
-      }
-      const obsoleteBatteries = ['bat_deye_512', 'bat_pylon_48', 'bat_dyness_48', 'bat_deye_1024', 'bat_pylon_35k', 'bat_byd_10k', 'bat_tesla_14k'];
-      if (obsoleteBatteries.includes(userSelections.batteryId)) {
-        userSelections.batteryId = 'bat_deye_rw_m61_lv';
-      }
     }
 
-    // Retorna o passo salvo se houver aparelhos seleccionados
     if (chosen.size > 0 && typeof data.currentStep === 'number' && data.currentStep >= 0 && data.currentStep <= 2) {
       return data.currentStep;
     }
     return 0;
   } catch (e) {
     console.warn('Erro ao restaurar sessão anterior:', e);
+    applyDefaultDemoLoads();
     return 0;
   }
 }
 
 function resetSimulation() {
-  if (chosen.size > 0 || ($('client-name') && $('client-name').value.trim())) {
-    if (!confirm('Deseja iniciar um Novo Dimensionamento e limpar todos os aparelhos e dados preenchidos?')) {
-      return;
-    }
-  }
   localStorage.removeItem(STORAGE_KEY_SESSION);
-  chosen.clear();
+  applyDefaultDemoLoads();
   if ($('client-name')) $('client-name').value = '';
   if ($('client-phone')) $('client-phone').value = '';
   if ($('location')) $('location').value = '';
   if ($('project-type')) $('project-type').value = 'Residência';
-  if ($('backup')) $('backup').value = '4';
+  selectedBackupHours = 4;
+  syncBackupRadioUI();
   userSelections.panelId = null;
   userSelections.inverterId = null;
   userSelections.batteryId = null;
@@ -271,12 +270,14 @@ function resetSimulation() {
 
 // Estado da Aplicação
 const chosen = new Map();
+const PRIMARY_APPLIANCE_INDICES = [0, 2, 1, 4]; // Lâmpada LED, Geleira, Televisão, Ventoinha
 let currentStep = 0;
-let searchQuery = '';
+let selectedBackupHours = 4;
 
 // Utilitários de Selecção e Formatação
 const $ = (id) => document.getElementById(id);
-const fmt = (n) => new Intl.NumberFormat('pt-MZ', { maximumFractionDigits: 1 }).format(n);
+const fmt = (n) => new Intl.NumberFormat('pt-MZ', { maximumFractionDigits: 2 }).format(n);
+const fmt1 = (n) => new Intl.NumberFormat('pt-MZ', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n);
 const money = (n) => new Intl.NumberFormat('pt-MZ', { maximumFractionDigits: 0 }).format(n) + ' MT';
 
 /**
@@ -302,282 +303,188 @@ function normalizeStr(str) {
 }
 
 /**
- * Alterna a selecção de um item do catálogo (Toggle)
+ * Lista limpa de aparelhos (Etapa 1)
  */
-function toggleItem(i) {
-  if (chosen.has(i)) {
-    chosen.delete(i);
+function renderAppliancesList() {
+  const container = $('appliances-list');
+  if (!container) return;
+  container.replaceChildren();
+
+  // Mostra os 4 aparelhos principais + quaisquer outros já adicionados pelo utilizador
+  const displayIndices = [...PRIMARY_APPLIANCE_INDICES];
+  chosen.forEach((_, idx) => {
+    if (!displayIndices.includes(idx)) {
+      displayIndices.push(idx);
+    }
+  });
+
+  displayIndices.forEach((idx) => {
+    const base = catalog[idx];
+    if (!base) return;
+    const active = chosen.get(idx);
+    const qty = active ? active.q : 0;
+    const hours = active ? active.h : '';
+
+    const row = document.createElement('div');
+    row.className = 'appliance-row';
+
+    const info = document.createElement('div');
+    info.className = 'appliance-info';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'appliance-name';
+    nameEl.textContent = active ? active.name : base[1];
+    info.append(nameEl);
+
+    if (qty > 0 || !PRIMARY_APPLIANCE_INDICES.includes(idx)) {
+      const adjustBtn = document.createElement('button');
+      adjustBtn.type = 'button';
+      adjustBtn.className = 'adjust-link';
+      adjustBtn.textContent = 'Ajustar';
+      adjustBtn.onclick = () => openAdjustModal(idx);
+      info.append(adjustBtn);
+    }
+
+    const qtyInput = document.createElement('input');
+    qtyInput.type = 'number';
+    qtyInput.className = 'num-input';
+    qtyInput.min = '0';
+    qtyInput.max = '100';
+    qtyInput.step = '1';
+    qtyInput.value = String(qty);
+    qtyInput.setAttribute('aria-label', `Quantidade de ${base[1]}`);
+    qtyInput.addEventListener('change', (e) => onApplianceQtyChange(idx, e.target.value));
+
+    const hoursInput = document.createElement('input');
+    hoursInput.type = 'number';
+    hoursInput.className = 'num-input';
+    hoursInput.min = '0.1';
+    hoursInput.max = '24';
+    hoursInput.step = '0.25';
+    hoursInput.placeholder = '—';
+    hoursInput.value = qty > 0 ? String(hours) : '';
+    hoursInput.setAttribute('aria-label', `Horas por dia de ${base[1]}`);
+    hoursInput.addEventListener('change', (e) => onApplianceHoursChange(idx, e.target.value));
+
+    row.append(info, qtyInput, hoursInput);
+    container.append(row);
+  });
+}
+
+function onApplianceQtyChange(idx, rawValue) {
+  const q = Math.max(0, Math.min(100, Math.round(Number(rawValue) || 0)));
+  const base = catalog[idx];
+  if (!base) return;
+
+  if (q === 0) {
+    chosen.delete(idx);
   } else {
-    const item = catalog[i];
-    chosen.set(i, {
-      iconKey: item[0],
-      name: item[1],
-      w: item[2],
-      h: item[3],
-      f: item[4],
+    const existing = chosen.get(idx);
+    if (existing) {
+      existing.q = q;
+    } else {
+      chosen.set(idx, {
+        iconKey: base[0],
+        name: base[1],
+        w: base[2],
+        h: base[3],
+        f: base[4],
+        q: q,
+        essential: base[5] !== undefined ? Boolean(base[5]) : true
+      });
+    }
+  }
+  hideValidationError(0);
+  render();
+}
+
+function onApplianceHoursChange(idx, rawValue) {
+  const h = Math.max(0.1, Math.min(24, Number(rawValue) || 0));
+  const base = catalog[idx];
+  if (!base) return;
+
+  const existing = chosen.get(idx);
+  if (existing) {
+    existing.h = h;
+  } else if (Number(rawValue) > 0) {
+    chosen.set(idx, {
+      iconKey: base[0],
+      name: base[1],
+      w: base[2],
+      h: h,
+      f: base[4],
       q: 1,
-      essential: item[5] !== undefined ? Boolean(item[5]) : true
+      essential: base[5] !== undefined ? Boolean(base[5]) : true
     });
   }
   hideValidationError(0);
   render();
 }
 
-/**
- * Altera propriedades de uma carga
- */
-function change(i, key, value) {
-  const item = chosen.get(i);
-  if (!item) return;
+function openAdjustModal(idx) {
+  const base = catalog[idx];
+  if (!base) return;
+  const active = chosen.get(idx);
 
-  if (key === 'essential') {
-    item[key] = Boolean(value);
+  if ($('adjust-index')) $('adjust-index').value = String(idx);
+  if ($('adjust-modal-title')) $('adjust-modal-title').textContent = active ? active.name : base[1];
+  if ($('adjust-power')) $('adjust-power').value = String(active ? active.w : base[2]);
+  if ($('adjust-essential')) $('adjust-essential').checked = active ? Boolean(active.essential) : Boolean(base[5]);
+
+  const removeBtn = $('adjust-remove-btn');
+  if (removeBtn) {
+    removeBtn.hidden = PRIMARY_APPLIANCE_INDICES.includes(idx);
+  }
+
+  const modal = $('adjust-modal');
+  if (modal) modal.hidden = false;
+}
+
+function closeAdjustModal() {
+  const modal = $('adjust-modal');
+  if (modal) modal.hidden = true;
+}
+
+function saveAdjustModal(event) {
+  event.preventDefault();
+  const idx = Number($('adjust-index').value);
+  const w = Math.max(1, Math.min(50000, Number($('adjust-power').value) || 100));
+  const essential = Boolean($('adjust-essential').checked);
+  const base = catalog[idx];
+  if (!base) return;
+
+  const active = chosen.get(idx);
+  if (active) {
+    active.w = w;
+    active.essential = essential;
   } else {
-    const num = Number(value) || 0;
-    if (key === 'q') item.q = Math.max(1, Math.min(100, Math.round(num)));
-    else if (key === 'h') item.h = Math.max(0.1, Math.min(24, num));
-    else if (key === 'w') item.w = Math.max(1, Math.min(50000, num));
-  }
-  render();
-}
-
-/**
- * Remove um aparelho da lista
- */
-function remove(i) {
-  chosen.delete(i);
-  render();
-}
-
-/**
- * Filtro de pesquisa no catálogo
- */
-function filterCatalog(query) {
-  searchQuery = normalizeStr(query);
-  const clearBtn = $('search-clear-btn');
-  if (clearBtn) {
-    clearBtn.hidden = !query || query.trim() === '';
-  }
-  renderCatalog();
-}
-
-/**
- * Limpa o campo de pesquisa
- */
-function clearSearch() {
-  const input = $('catalog-search');
-  if (input) {
-    input.value = '';
-    filterCatalog('');
-    input.focus();
-  }
-}
-
-/**
- * Renderiza os cards compactos do catálogo
- */
-function renderCatalog() {
-  const grid = $('catalog');
-  grid.replaceChildren();
-
-  let visibleCount = 0;
-
-  catalog.forEach((item, i) => {
-    const normName = normalizeStr(item[1]);
-    const matches = !searchQuery || normName.includes(searchQuery);
-
-    if (matches) {
-      visibleCount++;
-      const isSelected = chosen.has(i);
-
-      const tile = document.createElement('div');
-      tile.className = 'tile' + (isSelected ? ' selected' : '');
-      tile.setAttribute('role', 'button');
-      tile.setAttribute('tabindex', '0');
-      tile.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-
-      const iconBox = document.createElement('div');
-      iconBox.className = 'tile-icon-box';
-      iconBox.innerHTML = ICONS[item[0]] || ICONS.custom;
-
-      const info = document.createElement('div');
-      info.className = 'tile-info';
-
-      const title = document.createElement('span');
-      title.className = 'tile-name';
-      title.textContent = item[1];
-      title.title = item[1];
-
-      const cap = document.createElement('span');
-      cap.className = 'tile-cap';
-      cap.textContent = formatPower(item[2]);
-
-      info.append(title, cap);
-
-      const checkIndicator = document.createElement('div');
-      checkIndicator.className = 'tile-check-indicator';
-      checkIndicator.innerHTML = ICONS.check;
-
-      tile.append(iconBox, info, checkIndicator);
-
-      tile.onclick = () => toggleItem(i);
-      tile.onkeydown = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          toggleItem(i);
-        }
-      };
-
-      grid.append(tile);
-    }
-  });
-
-  const countBadge = $('catalog-count');
-  if (countBadge) {
-    countBadge.textContent = `${visibleCount} ${visibleCount === 1 ? 'aparelho' : 'aparelhos'}`;
-  }
-
-  if (visibleCount === 0) {
-    const empty = document.createElement('div');
-    empty.style.gridColumn = '1 / -1';
-    empty.style.textAlign = 'center';
-    empty.style.padding = '20px 14px';
-    empty.style.background = 'var(--surface-alt)';
-    empty.style.borderRadius = 'var(--radius-md)';
-    empty.style.border = '1px dashed var(--line)';
-    empty.style.fontSize = '12.5px';
-    empty.style.color = 'var(--muted)';
-
-    const rawSearch = ($('catalog-search') && $('catalog-search').value.trim()) || searchQuery;
-    const msg = document.createElement('div');
-    msg.innerHTML = `Nenhum equipamento padrão encontrado com o termo "<strong>${escapeHtml(rawSearch)}</strong>".`;
-
-    const addBtn = document.createElement('button');
-    addBtn.type = 'button';
-    addBtn.className = 'btn btn-secondary btn-sm';
-    addBtn.style.marginTop = '8px';
-    addBtn.textContent = `+ Adicionar "${rawSearch}" como aparelho personalizado`;
-    addBtn.addEventListener('click', () => openCustomModal(rawSearch));
-
-    empty.append(msg, addBtn);
-    grid.append(empty);
-  }
-}
-
-/**
- * Renderiza a lista de aparelhos seleccionados
- */
-function renderLoadsList() {
-  const loadsContainer = $('loads');
-  loadsContainer.replaceChildren();
-
-  const countBadge = $('loads-count-badge');
-  if (countBadge) {
-    countBadge.textContent = chosen.size;
-  }
-
-  if (chosen.size === 0) {
-    const placeholder = document.createElement('div');
-    placeholder.style.padding = '14px 12px';
-    placeholder.style.textAlign = 'center';
-    placeholder.style.color = 'var(--muted)';
-    placeholder.style.fontSize = '12px';
-    placeholder.style.background = 'var(--surface-alt)';
-    placeholder.style.borderRadius = 'var(--radius-md)';
-    placeholder.style.border = '1px dashed var(--line)';
-    placeholder.textContent = 'Nenhum aparelho seleccionado. Clique nos cartões acima para incluir no dimensionamento.';
-    loadsContainer.append(placeholder);
-    return;
-  }
-
-  chosen.forEach((item, i) => {
-    const row = document.createElement('div');
-    row.className = 'load-item';
-
-    const header = document.createElement('div');
-    header.className = 'load-item-header';
-
-    const titleContainer = document.createElement('div');
-    titleContainer.className = 'load-item-title';
-
-    const iconSpan = document.createElement('span');
-    iconSpan.className = 'load-icon';
-    iconSpan.innerHTML = ICONS[item.iconKey] || ICONS.custom;
-
-    const nameText = document.createElement('span');
-    nameText.textContent = item.name;
-
-    titleContainer.append(iconSpan, nameText);
-
-    const btnRem = document.createElement('button');
-    btnRem.type = 'button';
-    btnRem.className = 'btn-remove';
-    btnRem.innerHTML = `${ICONS.trash} Remover`;
-    btnRem.onclick = () => remove(i);
-
-    header.append(titleContainer, btnRem);
-    row.append(header);
-
-    const fields = document.createElement('div');
-    fields.className = 'fields-grid';
-
-    const fieldConfig = [
-      ['q', 'Quantidade', 1, 100, 1],
-      ['w', 'Potência (W)', 1, 50000, 1],
-      ['h', 'Horas / dia', 0.1, 24, 0.25]
-    ];
-
-    fieldConfig.forEach(([key, labelText, min, max, step]) => {
-      const label = document.createElement('label');
-      label.textContent = labelText;
-
-      const input = document.createElement('input');
-      input.type = 'number';
-      input.min = min;
-      input.max = max;
-      input.step = step;
-      input.value = item[key];
-      input.onchange = () => change(i, key, input.value);
-
-      label.append(input);
-      fields.append(label);
+    chosen.set(idx, {
+      iconKey: base[0],
+      name: base[1],
+      w: w,
+      h: base[3],
+      f: base[4],
+      q: 1,
+      essential: essential
     });
+  }
 
-    row.append(fields);
+  closeAdjustModal();
+  render();
+}
 
-    const checkLabel = document.createElement('label');
-    checkLabel.className = 'checkbox-label';
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = item.essential;
-    checkbox.onchange = () => change(i, 'essential', checkbox.checked);
-
-    checkLabel.append(checkbox, document.createTextNode(' Manter ligado com bateria durante cortes da EDM'));
-    row.append(checkLabel);
-
-    if (item.f < 1) {
-      const note = document.createElement('div');
-      note.className = 'small';
-      note.style.marginTop = '4px';
-      note.style.color = '#8a5b28';
-      note.style.display = 'inline-flex';
-      note.style.alignItems = 'center';
-      note.style.gap = '5px';
-      note.innerHTML = `${ICONS.info}<span>Refrigeração: cálculo considera ciclo de compressor de 35%.</span>`;
-      row.append(note);
-    }
-
-    loadsContainer.append(row);
-  });
+function removeAdjustedAppliance() {
+  const idx = Number($('adjust-index').value);
+  chosen.delete(idx);
+  closeAdjustModal();
+  render();
 }
 
 /**
  * Renderiza interface completa
  */
 function render() {
-  renderCatalog();
-  renderLoadsList();
+  renderAppliancesList();
   update();
 }
 
@@ -697,10 +604,24 @@ function getSelectedBattery(selectedInverter) {
 }
 
 function getBackupHours() {
-  const el = $('backup');
-  if (!el || el.value === '' || el.value === null || el.value === undefined) return 4;
-  const val = Number(el.value);
-  return Number.isFinite(val) && val >= 0 ? val : 4;
+  return Number.isFinite(selectedBackupHours) && selectedBackupHours >= 0 ? selectedBackupHours : 4;
+}
+
+function syncBackupRadioUI() {
+  const cards = document.querySelectorAll('.radio-card');
+  cards.forEach((card) => {
+    const h = Number(card.getAttribute('data-hours'));
+    const radio = card.querySelector('input[type="radio"]');
+    const isSel = h === selectedBackupHours;
+    card.classList.toggle('selected', isSel);
+    if (radio) radio.checked = isSel;
+  });
+}
+
+function onSelectBackup(hours) {
+  selectedBackupHours = Number(hours) || 4;
+  syncBackupRadioUI();
+  update();
 }
 
 /**
@@ -1094,127 +1015,15 @@ function onSelectProduct(category, productId) {
 function update() {
   const r = calculate();
 
-  // Métricas básicas de carga
-  $('count').textContent = r.q;
-  $('energy').textContent = fmt(r.e) + ' kWh';
-  $('power').textContent = fmt(r.p) + ' kW';
-
-  // Preview dos dados do cliente
-  const clientName = ($('client-name') && $('client-name').value.trim()) || 'A definir';
-  const location = ($('location') && $('location').value.trim()) || 'Moçambique';
-  const projType = ($('project-type') && $('project-type').value) || 'Residência';
-
-  if ($('sum-client-name')) $('sum-client-name').textContent = clientName;
-  if ($('sum-location')) $('sum-location').textContent = location;
-  if ($('sum-type')) $('sum-type').textContent = projType;
-
-  // Apenas exibe o orçamento final e equipamentos definitivos na Etapa 3 (currentStep === 2)
-  const isFinalStep = (currentStep === 2);
-
-  // Painel de Engenharia ao Vivo (Live Spec Box)
-  if ($('side-pv')) {
-    if (isFinalStep) {
-      $('side-pv').textContent = r.pv > 0 ? `${fmt(r.pv)} kWp (${r.panels} painéis)` : '0 kWp (0 painéis)';
-    } else {
-      $('side-pv').textContent = r.q > 0 ? `${r.panels} painéis (estimado)` : 'Defina na Etapa 01';
-    }
-  }
-  if ($('side-inv')) {
-    if (isFinalStep) {
-      $('side-inv').textContent = `${r.inv} kW Híbrido`;
-    } else {
-      $('side-inv').textContent = r.p > 0 ? `~${r.inv} kW (estimado)` : 'Defina na Etapa 01';
-    }
-  }
-  if ($('side-bat')) {
-    if (isFinalStep) {
-      $('side-bat').textContent = r.batteries > 0 ? `${fmt(r.bat)} kWh (${r.batteries} mod.)` : 'Sem baterias (Autoconsumo)';
-    } else {
-      $('side-bat').textContent = 'Defina no Passo 02';
-    }
-  }
-  if ($('side-gen-monthly')) {
-    if (isFinalStep) {
-      $('side-gen-monthly').textContent = `~${fmt(r.monthlyGenKwh)} kWh/mês`;
-    } else {
-      $('side-gen-monthly').textContent = '0 kWh/mês';
-    }
-  }
-  if ($('side-savings-monthly')) {
-    $('side-savings-monthly').textContent = isFinalStep ? `~${money(r.monthlySavingsMzn)}/mês` : '0 MT/mês';
-  }
-  if ($('side-co2-annual')) {
-    $('side-co2-annual').textContent = isFinalStep ? `${r.co2AvoidedTonYear} ton CO₂/ano` : '0 ton/ano';
+  const dailySummary = $('daily-kwh-summary');
+  if (dailySummary) {
+    dailySummary.textContent = `${fmt1(r.e)} kWh/dia`;
   }
 
-  // Destaque do Orçamento em Tempo Real:
-  // IMPORTANTE: Mostra zeros nas Etapas 01 e 02 (0 MT); mostra os valores reais na Etapa 03!
-  const sideTotalEl = $('side-total-cost');
-  const sideTermsEl = document.querySelector('.summary-budget-highlight .budget-terms');
-  const mobTotalEl = $('mob-total-cost');
-  const mobPvInvEl = $('mob-pv-inv');
-
-  const subtotal = r.total;
-  const iva = Math.round(subtotal * 0.16);
-  const totalComIva = subtotal + iva;
-
-  if (isFinalStep) {
-    // Na Etapa 3: Exibe o valor real exato calculado com IVA incluído
-    const totalComIvaText = money(totalComIva);
-    if (sideTotalEl) {
-      sideTotalEl.textContent = totalComIvaText;
-      sideTotalEl.style.fontSize = '24px';
-      sideTotalEl.style.color = '#ffffff';
-    }
-    if ($('side-subtotal')) $('side-subtotal').textContent = money(subtotal);
-    if ($('side-iva')) $('side-iva').textContent = money(iva);
-    if ($('side-total-iva')) $('side-total-iva').textContent = totalComIvaText;
-
-    if (sideTermsEl) {
-      sideTermsEl.textContent = 'Estimativa preliminar (±20%) · Inclui 16% de IVA';
-    }
-    if (mobTotalEl) {
-      mobTotalEl.textContent = totalComIvaText;
-    }
-    if (mobPvInvEl) {
-      mobPvInvEl.textContent = `${fmt(r.pv)} kWp · ${r.inv} kW · IVA inc.`;
-    }
-  } else {
-    // Nas Etapas 01 e 02: Mostra zeros, e não palavras!
-    if (sideTotalEl) {
-      sideTotalEl.textContent = '0 MT';
-      sideTotalEl.style.fontSize = '24px';
-      sideTotalEl.style.color = '#ffffff';
-    }
-    if ($('side-subtotal')) $('side-subtotal').textContent = '0 MT';
-    if ($('side-iva')) $('side-iva').textContent = '0 MT';
-    if ($('side-total-iva')) $('side-total-iva').textContent = '0 MT';
-
-    if (sideTermsEl) {
-      sideTermsEl.textContent = 'Estimativa preliminar (±20%) · Inclui 16% de IVA';
-    }
-    if (mobTotalEl) {
-      mobTotalEl.textContent = '0 MT';
-    }
-    if (mobPvInvEl) {
-      mobPvInvEl.textContent = `${r.q} aparelhos seleccionados`;
-    }
-  }
-
-  // Barra de Cargas de Bateria
-  if ($('side-bat-coverage')) {
-    $('side-bat-coverage').textContent = `${r.batteryCoveragePercent}% das cargas`;
-  }
-  if ($('side-bat-fill')) {
-    $('side-bat-fill').style.width = `${r.batteryCoveragePercent}%`;
-  }
-
-  if (isFinalStep) {
-    populateProductSelectors(r);
+  if (currentStep === 2) {
     result(r);
   }
 
-  // Salva o estado atual da simulação para não perder dados ao recarregar a página
   saveSimulationSession();
 }
 
@@ -1310,20 +1119,7 @@ function tryGo(targetStep) {
   if (currentStep === 0) {
     const t = totals();
     if (chosen.size === 0 || t.e <= 0 || t.p <= 0) {
-      showValidationError(0, 'Seleccione pelo menos um aparelho antes de avançar.');
-      return;
-    }
-    if (targetStep === 2) {
-      if (!validateStep1Fields()) {
-        go(1);
-        showValidationError(1, 'Por favor, preencha os dados do cliente e localidade.');
-        return;
-      }
-    }
-  }
-  if (currentStep === 1 && targetStep === 2) {
-    if (!validateStep1Fields()) {
-      showValidationError(1, 'Por favor, preencha os campos obrigatórios assinalados.');
+      showValidationError(0, 'Indique pelo menos um aparelho com quantidade e horas superiores a zero.');
       return;
     }
   }
@@ -1331,30 +1127,17 @@ function tryGo(targetStep) {
 }
 
 /**
- * Transição de passos com validação rigorosa
+ * Transição de passos
  */
 function go(n) {
   const t = totals();
 
-  if (currentStep === 0 && n > 0) {
-    if (chosen.size === 0) {
-      showValidationError(0, 'Por favor, seleccione pelo menos um aparelho no catálogo antes de continuar.');
-      return;
-    }
-    if (t.e <= 0 || t.p <= 0) {
-      showValidationError(0, 'Os aparelhos seleccionados devem ter potência e horas superiores a zero.');
+  if (n > 0) {
+    if (chosen.size === 0 || t.e <= 0 || t.p <= 0) {
+      showValidationError(0, 'Indique pelo menos um aparelho com quantidade e horas superiores a zero.');
       return;
     }
     hideValidationError(0);
-  }
-
-  if (currentStep === 1 && n === 2) {
-    const ok = validateStep1Fields();
-    if (!ok) {
-      showValidationError(1, 'Por favor, preencha o Nome do Cliente, Contacto e Local do Projecto.');
-      return;
-    }
-    hideValidationError(1);
   }
 
   currentStep = n;
@@ -1362,18 +1145,16 @@ function go(n) {
   for (let i = 0; i < 3; i++) {
     const stepEl = $('step' + i);
     const pillEl = $('s' + i);
-    const actionEl = $('actions-step' + i);
     if (stepEl) stepEl.hidden = i !== n;
-    if (pillEl) pillEl.className = 'step-pill' + (i === n ? ' active' : '');
-    if (actionEl) actionEl.style.display = i === n ? 'flex' : 'none';
+    if (pillEl) pillEl.className = 'tab-btn' + (i === n ? ' active' : '');
+  }
+
+  if (n === 1) {
+    syncBackupRadioUI();
   }
 
   update();
-
-  const scrollArea = document.querySelector('.content-scroll');
-  if (scrollArea) {
-    scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function computeProposalCode(clientName, location, projType) {
@@ -1462,14 +1243,23 @@ function result(calcResult) {
   const projType = ($('project-type') && $('project-type').value) || 'Residência';
   const backupHours = typeof r.backupHours === 'number' ? r.backupHours : getBackupHours();
 
-  // Cálculos Oficiais do Orçamento com IVA 16% (Taxa Legal de Moçambique)
   const subtotal = r.total;
   const iva = Math.round(subtotal * 0.16);
   const totalComIva = subtotal + iva;
 
-  // Tabela de Orçamento na Tela com discriminação de IVA
-  const quoteBody = $('quote');
-  quoteBody.replaceChildren();
+  // Atualiza UI simplificada do Resultado (Etapa 3)
+  if ($('result-price')) {
+    $('result-price').textContent = totalComIva > 0 ? money(totalComIva) : 'Preço sob consulta';
+  }
+  if ($('res-panels')) {
+    $('res-panels').textContent = `${r.panels} ${r.panels === 1 ? 'painel' : 'painéis'} · ${fmt(r.pv)} kWp`;
+  }
+  if ($('res-inverter')) {
+    $('res-inverter').textContent = `${fmt(r.inv)} kW`;
+  }
+  if ($('res-battery')) {
+    $('res-battery').textContent = r.batteries > 0 ? `${fmt(r.bat)} kWh` : 'Sem baterias';
+  }
 
   const allItems = [
     ...r.items,
@@ -1477,40 +1267,6 @@ function result(calcResult) {
     ['IVA — Imposto sobre o Valor Acrescentado (16%)', iva, 'iva'],
     ['TOTAL FINAL DO SISTEMA (Com IVA 16% Incluído)', totalComIva, 'total-final']
   ];
-
-  allItems.forEach(([name, price, type]) => {
-    const tr = document.createElement('tr');
-    const tdName = document.createElement('td');
-    const tdPrice = document.createElement('td');
-
-    tdName.textContent = name;
-    tdPrice.textContent = money(price);
-    tdPrice.style.textAlign = 'right';
-
-    if (type === 'total-final') {
-      tr.style.fontWeight = '800';
-      tr.style.fontSize = '14px';
-      tr.style.background = '#fff7ed';
-      tdPrice.style.color = '#ea580c';
-    } else if (type === 'subtotal') {
-      tr.style.fontWeight = '700';
-      tr.style.borderTop = '2px solid var(--line-strong)';
-      tr.style.background = '#f8fafc';
-    } else if (type === 'iva') {
-      tr.style.fontWeight = '600';
-      tr.style.color = '#c2410c';
-      tr.style.background = '#f8fafc';
-    }
-
-    tr.append(tdName, tdPrice);
-    quoteBody.append(tr);
-  });
-
-  // Aviso de grande porte
-  const limitEl = $('limit');
-  if (limitEl) {
-    limitEl.hidden = r.inv <= 20 && r.pv <= 20;
-  }
 
   // Preenchimento da FOLHA A4 PARA IMPRESSÃO
   const now = new Date();
@@ -1619,31 +1375,67 @@ window.addEventListener('storage', (event) => {
 });
 
 /* ========================================================
-   MODAL POPUP PARA APARELHOS PERSONALIZADOS
+   MODAIS PLANOS (OUTRO APARELHO & PEDIR COTAÇÃO)
    ======================================================== */
+function handleModalBackdrop(event, modalId) {
+  if (event.target && event.target.id === modalId) {
+    event.target.hidden = true;
+  }
+}
 
-function openCustomModal(prefilledName = '') {
-  const modal = $('custom-modal');
+function populateCatalogPicker() {
+  const picker = $('catalog-picker');
+  if (!picker) return;
+  picker.replaceChildren();
+
+  catalog.forEach((item, idx) => {
+    if (PRIMARY_APPLIANCE_INDICES.includes(idx)) return;
+    if (item[0] === 'custom') return;
+    const opt = document.createElement('option');
+    opt.value = String(idx);
+    opt.textContent = `${item[1]} (${item[2]} W)`;
+    picker.append(opt);
+  });
+
+  const customOpt = document.createElement('option');
+  customOpt.value = 'custom';
+  customOpt.textContent = 'Outro aparelho personalizado...';
+  picker.append(customOpt);
+}
+
+function onPickCatalogItem(val) {
+  const nameGroup = $('custom-name-group');
   const nameInput = $('custom-name');
   const powerInput = $('custom-power');
-  const qtyInput = $('custom-qty');
   const hoursInput = $('custom-hours');
   const essentialCheck = $('custom-essential');
-  const errorMsg = $('custom-name-error');
 
-  if (nameInput) nameInput.value = prefilledName || '';
-  if (powerInput) powerInput.value = '200';
-  if (qtyInput) qtyInput.value = '1';
-  if (hoursInput) hoursInput.value = '2';
-  if (essentialCheck) essentialCheck.checked = true;
-  if (errorMsg) errorMsg.hidden = true;
-
-  if (modal) {
-    modal.hidden = false;
-    setTimeout(() => {
-      if (nameInput) nameInput.focus();
-    }, 50);
+  if (val === 'custom') {
+    if (nameGroup) nameGroup.hidden = false;
+    if (nameInput) nameInput.value = '';
+    if (powerInput) powerInput.value = '200';
+    if (hoursInput) hoursInput.value = '2';
+    if (essentialCheck) essentialCheck.checked = true;
+    return;
   }
+
+  const item = catalog[Number(val)];
+  if (!item) return;
+  if (nameGroup) nameGroup.hidden = true;
+  if (powerInput) powerInput.value = String(item[2]);
+  if (hoursInput) hoursInput.value = String(item[3]);
+  if (essentialCheck) essentialCheck.checked = item[5] !== undefined ? Boolean(item[5]) : true;
+}
+
+function openCustomModal() {
+  populateCatalogPicker();
+  const picker = $('catalog-picker');
+  if (picker && picker.options.length > 0) {
+    picker.selectedIndex = 0;
+    onPickCatalogItem(picker.value);
+  }
+  const modal = $('custom-modal');
+  if (modal) modal.hidden = false;
 }
 
 function closeCustomModal() {
@@ -1651,66 +1443,120 @@ function closeCustomModal() {
   if (modal) modal.hidden = true;
 }
 
-function handleBackdropClick(event) {
-  if (event.target.id === 'custom-modal') {
-    closeCustomModal();
-  }
-}
-
 function saveCustomModal(event) {
   event.preventDefault();
 
-  const nameInput = $('custom-name');
-  const powerInput = $('custom-power');
-  const qtyInput = $('custom-qty');
-  const hoursInput = $('custom-hours');
-  const essentialCheck = $('custom-essential');
-  const errorMsg = $('custom-name-error');
+  const picker = $('catalog-picker');
+  const picked = picker ? picker.value : 'custom';
+  const power = Math.max(1, Math.min(50000, Number($('custom-power').value) || 200));
+  const qty = Math.max(1, Math.min(100, Math.round(Number($('custom-qty').value) || 1)));
+  const hours = Math.max(0.1, Math.min(24, Number($('custom-hours').value) || 1));
+  const essential = Boolean($('custom-essential').checked);
 
-  const name = nameInput.value.trim();
-  const power = Number(powerInput.value) || 0;
-  const qty = Number(qtyInput.value) || 1;
-  const hours = Number(hoursInput.value) || 1;
-  const essential = essentialCheck.checked;
-
-  if (!name || name.length < 2) {
-    nameInput.classList.add('has-error');
-    if (errorMsg) {
-      errorMsg.textContent = 'Por favor, informe o nome do aparelho.';
-      errorMsg.hidden = false;
+  if (picked !== 'custom') {
+    const idx = Number(picked);
+    const base = catalog[idx];
+    if (base) {
+      chosen.set(idx, {
+        iconKey: base[0],
+        name: base[1],
+        w: power,
+        h: hours,
+        f: base[4],
+        q: qty,
+        essential: essential
+      });
     }
-    nameInput.focus();
-    return;
+  } else {
+    const nameInput = $('custom-name');
+    const name = ((nameInput && nameInput.value) || '').trim();
+    if (!name || name.length < 2) {
+      if (nameInput) nameInput.focus();
+      return;
+    }
+    const newIndex = catalog.length;
+    catalog.push(['custom', name.slice(0, 60), power, hours, 1, essential]);
+    chosen.set(newIndex, {
+      iconKey: 'custom',
+      name: name.slice(0, 60),
+      w: power,
+      h: hours,
+      f: 1,
+      q: qty,
+      essential: essential
+    });
   }
-
-  if (power <= 0 || power > 50000) {
-    powerInput.classList.add('has-error');
-    powerInput.focus();
-    return;
-  }
-
-  const newIndex = catalog.length;
-  catalog.push(['custom', name.slice(0, 60), power, hours, 1, essential]);
-
-  chosen.set(newIndex, {
-    iconKey: 'custom',
-    name: name.slice(0, 60),
-    w: power,
-    h: hours,
-    f: 1,
-    q: qty,
-    essential: essential
-  });
 
   closeCustomModal();
-  clearSearch();
   hideValidationError(0);
   render();
+}
+
+function openQuoteModal() {
+  const modal = $('quote-modal');
+  if (modal) {
+    modal.hidden = false;
+    setTimeout(() => {
+      if ($('client-name')) $('client-name').focus();
+    }, 50);
+  }
+}
+
+function closeQuoteModal() {
+  const modal = $('quote-modal');
+  if (modal) modal.hidden = true;
+}
+
+function submitQuoteForm(event) {
+  event.preventDefault();
+  const r = calculate();
+  const clientName = ($('client-name') && $('client-name').value.trim()) || 'Cliente LECASU';
+  const clientPhone = ($('client-phone') && $('client-phone').value.trim()) || 'Não informado';
+  const location = ($('location') && $('location').value.trim()) || 'Moçambique';
+  const projType = ($('project-type') && $('project-type').value) || 'Residência';
+  const backupHours = getBackupHours();
+  const subtotal = r.total;
+  const iva = Math.round(subtotal * 0.16);
+  const totalComIva = subtotal + iva;
+
+  saveSimulationSession();
+  submitQuoteToBackend('whatsapp');
+  const textSummary = buildQuoteSummaryText(r, clientName, clientPhone, location, projType, backupHours, subtotal, iva, totalComIva);
+  closeQuoteModal();
+  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(textSummary)}`, '_blank', 'noopener');
+}
+
+function sendQuoteByEmail() {
+  const r = calculate();
+  const clientName = ($('client-name') && $('client-name').value.trim()) || 'Cliente LECASU';
+  const clientPhone = ($('client-phone') && $('client-phone').value.trim()) || 'Não informado';
+  const location = ($('location') && $('location').value.trim()) || 'Moçambique';
+  const projType = ($('project-type') && $('project-type').value) || 'Residência';
+  const backupHours = getBackupHours();
+  const subtotal = r.total;
+  const iva = Math.round(subtotal * 0.16);
+  const totalComIva = subtotal + iva;
+
+  saveSimulationSession();
+  submitQuoteToBackend('email');
+  const textSummary = buildQuoteSummaryText(r, clientName, clientPhone, location, projType, backupHours, subtotal, iva, totalComIva);
+  closeQuoteModal();
+  window.location.href = `mailto:info@lecasu.co.mz?subject=${encodeURIComponent(`Pedido de Proposta Técnica — ${clientName} (${location})`)}&body=${encodeURIComponent(textSummary)}`;
+}
+
+function printProposalA4() {
+  saveSimulationSession();
+  result();
+  submitQuoteToBackend('print_a4');
+  closeQuoteModal();
+  window.print();
 }
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeCustomModal();
+    closeAdjustModal();
+    closeQuoteModal();
   }
 });
 
@@ -1726,28 +1572,16 @@ if ('serviceWorker' in navigator) {
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
   const savedStep = loadSimulationSession();
+  syncBackupRadioUI();
   render();
   go(savedStep);
   syncCatalogFromServer();
 
-  // Regista envio de propostas para o backend ao interagir com WhatsApp / E-mail / Impressão
-  if ($('whatsapp-btn')) {
-    $('whatsapp-btn').addEventListener('click', () => submitQuoteToBackend('whatsapp'));
-  }
-  if ($('contact')) {
-    $('contact').addEventListener('click', () => submitQuoteToBackend('email'));
-  }
-  window.addEventListener('beforeprint', () => {
-    if (currentStep === 2) submitQuoteToBackend('print_a4');
-  });
-
-  // Escuta campos do Passo 1 para persistência imediata
   ['client-name', 'client-phone', 'location'].forEach((id) => {
     const el = $(id);
     if (el) el.addEventListener('input', saveSimulationSession);
   });
-  ['project-type', 'backup'].forEach((id) => {
-    const el = $(id);
-    if (el) el.addEventListener('change', saveSimulationSession);
-  });
+  if ($('project-type')) {
+    $('project-type').addEventListener('change', saveSimulationSession);
+  }
 });
