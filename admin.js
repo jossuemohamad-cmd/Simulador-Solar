@@ -749,6 +749,213 @@ window.handleRecoverPassword = handleRecoverPassword;
    GESTÃO DO DASHBOARD & KPIS
    ======================================================== */
 
+const DEFAULT_APPLIANCES = [
+  { iconKey: 'led', name: 'Lâmpada LED', power: 10, hours: 5, factor: 1, essential: true, origin: 'system' },
+  { iconKey: 'tv', name: 'Televisão', power: 100, hours: 5, factor: 1, essential: true, origin: 'system' },
+  { iconKey: 'fridge', name: 'Geleira', power: 150, hours: 24, factor: 0.35, essential: true, origin: 'system' },
+  { iconKey: 'freezer', name: 'Congelador', power: 200, hours: 24, factor: 0.35, essential: true, origin: 'system' },
+  { iconKey: 'fan', name: 'Ventoinha', power: 60, hours: 8, factor: 1, essential: true, origin: 'system' },
+  { iconKey: 'laptop', name: 'Computador portátil', power: 65, hours: 6, factor: 1, essential: true, origin: 'system' },
+  { iconKey: 'wifi', name: 'Router Wi-Fi', power: 15, hours: 24, factor: 1, essential: true, origin: 'system' },
+  { iconKey: 'security', name: 'CCTV & Cerca Elétrica', power: 80, hours: 24, factor: 1, essential: true, origin: 'system' },
+  { iconKey: 'desktop', name: 'Computador de Escritório', power: 200, hours: 6, factor: 1, essential: true, origin: 'system' },
+  { iconKey: 'ac', name: 'Ar condicionado', power: 1200, hours: 8, factor: 1, essential: false, origin: 'system' },
+  { iconKey: 'pump', name: 'Bomba de água', power: 750, hours: 1, factor: 1, essential: false, origin: 'system' },
+  { iconKey: 'borehole', name: 'Bomba de Furo Submersa', power: 1500, hours: 1.5, factor: 1, essential: false, origin: 'system' },
+  { iconKey: 'washing', name: 'Máquina de lavar', power: 500, hours: 1, factor: 1, essential: false, origin: 'system' },
+  { iconKey: 'microwave', name: 'Micro-ondas', power: 1200, hours: 0.5, factor: 1, essential: false, origin: 'system' },
+  { iconKey: 'iron', name: 'Ferro de engomar', power: 1800, hours: 0.5, factor: 1, essential: false, origin: 'system' },
+  { iconKey: 'kettle', name: 'Chaleira', power: 2000, hours: 0.25, factor: 1, essential: false, origin: 'system' },
+  { iconKey: 'waterheater', name: 'Termoacumulador / Geyser', power: 1500, hours: 2, factor: 0.7, essential: false, origin: 'system' }
+];
+
+let serverAppliances = [];
+let appliancesLoaded = false;
+
+function getApplianceSvg(iconKey) {
+  const icons = {
+    led: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 6a5 5 0 0 0-5 5c0 2.3 1.4 3.4 2 5h6c.6-1.6 2-2.7 2-5a5 5 0 0 0-5-5z"/></svg>',
+    tv: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><polyline points="16 2 12 6 8 2"/></svg>',
+    fridge: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="9" y1="5" x2="9" y2="7"/></svg>',
+    freezer: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>',
+    fan: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 9c0-4 3-6 5-5s2 4-2 5"/></svg>',
+    laptop: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20"/></svg>',
+    desktop: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/></svg>',
+    wifi: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>',
+    security: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+    ac: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="9" rx="2"/><path d="M6 16c1 1 2 1 3 0s2-1 3 0"/></svg>',
+    pump: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>',
+    borehole: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><circle cx="12" cy="17" r="4"/></svg>',
+    washing: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="13" r="4"/></svg>',
+    microwave: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="5" y="8" width="10" height="8" rx="1"/></svg>',
+    iron: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h18c-1-5-4-9-9-9H5c-1.1 0-2 .9-2 2v7z"/></svg>',
+    kettle: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M17 8h1a4 4 0 1 1 0 8h-1"/></svg>',
+    waterheater: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="6"/><circle cx="12" cy="14" r="2"/></svg>',
+    custom: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6"/><path d="M8 2v6"/><path d="M6 8h12v4a6 6 0 0 1-12 0V8z"/><path d="M12 18v4"/></svg>'
+  };
+  return icons[iconKey] || icons.custom;
+}
+
+function getAllAvailableAppliances() {
+  const combined = [...DEFAULT_APPLIANCES];
+  serverAppliances.forEach((srv) => {
+    const normName = String(srv.name || '').trim().toLowerCase();
+    const power = Math.round(Number(srv.power) || 0);
+    const exists = combined.some(
+      (x) => x.name.toLowerCase() === normName && Math.round(x.power) === power
+    );
+    if (!exists && normName && power > 0) {
+      combined.push({
+        iconKey: 'custom',
+        name: srv.name,
+        power,
+        hours: Number(srv.hours) || 2,
+        factor: Number(srv.factor) || 1,
+        essential: srv.essential !== undefined ? Boolean(srv.essential) : true,
+        origin: 'client'
+      });
+    }
+  });
+  return combined;
+}
+
+async function syncAppliancesFromServer() {
+  try {
+    const res = await fetch('/api/appliances', { cache: 'no-store' });
+    const ct = res.headers.get('content-type') || '';
+    if (res.ok && ct.includes('application/json')) {
+      const data = await res.json();
+      if (data && Array.isArray(data.appliances)) {
+        serverAppliances = data.appliances;
+        appliancesLoaded = true;
+        const totalApps = getAllAvailableAppliances().length;
+        if ($('kpi-appliances-count')) $('kpi-appliances-count').textContent = totalApps;
+        if (activeCategory === 'appliances') {
+          renderAppliancesTable();
+        }
+      }
+    }
+  } catch {}
+}
+
+function formatAppliancePower(w) {
+  const num = Math.round(Number(w) || 0);
+  if (num >= 1000) {
+    const kw = (num / 1000).toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+    return `${num.toLocaleString('pt-MZ')} W (${kw} kW)`;
+  }
+  return `${num} W`;
+}
+
+function renderAppliancesTable() {
+  const tbody = $('appliances-table-tbody');
+  if (!tbody) return;
+  tbody.replaceChildren();
+
+  const all = getAllAvailableAppliances();
+  const q = (filterQuery || '').toLowerCase().trim();
+  const filtered = q
+    ? all.filter((item) => item.name.toLowerCase().includes(q) || String(item.power).includes(q))
+    : all;
+
+  if ($('current-category-count')) {
+    $('current-category-count').textContent = `${filtered.length} ${filtered.length === 1 ? 'aparelho' : 'aparelhos'}`;
+  }
+
+  if (filtered.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 5;
+    td.style.textAlign = 'center';
+    td.style.padding = '36px 16px';
+    td.style.color = 'var(--muted)';
+    td.textContent = 'Nenhum aparelho encontrado para a pesquisa.';
+    tr.append(td);
+    tbody.append(tr);
+    return;
+  }
+
+  filtered.forEach((item) => {
+    const tr = document.createElement('tr');
+
+    const tdName = document.createElement('td');
+    tdName.innerHTML = `
+      <div class="product-name-cell">
+        <div class="product-thumb-box" style="display:flex;align-items:center;justify-content:center;background:#f8fafc;color:#0284c7;border:1px solid #e2e8f0;width:36px;height:36px;border-radius:8px;flex-shrink:0;">
+          ${getApplianceSvg(item.iconKey)}
+        </div>
+        <div style="min-width:0;">
+          <div class="product-title">${escapeHtml(item.name)}</div>
+        </div>
+      </div>
+    `;
+
+    const tdOrigin = document.createElement('td');
+    tdOrigin.innerHTML = item.origin === 'client'
+      ? '<span class="appliance-origin-pill client">Registado no Sistema</span>'
+      : '<span class="appliance-origin-pill system">Padrão LECASU</span>';
+
+    const tdPower = document.createElement('td');
+    tdPower.innerHTML = `<strong style="color: var(--ink);">${escapeHtml(formatAppliancePower(item.power))}</strong>`;
+
+    const tdUsage = document.createElement('td');
+    const cycleNote = item.factor < 1 ? ` · Ciclo ${Math.round(item.factor * 100)}%` : '';
+    tdUsage.innerHTML = `<span style="color: var(--ink-secondary);">${item.hours} h/dia${cycleNote}</span>`;
+
+    const tdEssential = document.createElement('td');
+    tdEssential.innerHTML = item.essential
+      ? '<span class="appliance-origin-pill" style="background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Essencial (Sim)</span>'
+      : '<span class="appliance-origin-pill system">Opcional (Não)</span>';
+
+    tr.append(tdName, tdOrigin, tdPower, tdUsage, tdEssential);
+    tbody.append(tr);
+  });
+}
+
+function openAdminApplianceModal() {
+  if ($('adm-app-name')) $('adm-app-name').value = '';
+  if ($('adm-app-power')) $('adm-app-power').value = '200';
+  if ($('adm-app-hours')) $('adm-app-hours').value = '2';
+  if ($('adm-app-essential')) $('adm-app-essential').checked = true;
+  const modal = $('admin-appliance-modal');
+  if (modal) modal.hidden = false;
+}
+window.openAdminApplianceModal = openAdminApplianceModal;
+
+function closeAdminApplianceModal() {
+  const modal = $('admin-appliance-modal');
+  if (modal) modal.hidden = true;
+}
+window.closeAdminApplianceModal = closeAdminApplianceModal;
+
+async function handleSaveAdminAppliance(event) {
+  event.preventDefault();
+  const name = ($('adm-app-name') && $('adm-app-name').value.trim()) || '';
+  const power = Math.max(1, Math.min(50000, Math.round(Number($('adm-app-power').value) || 200)));
+  const hours = Math.max(0.1, Math.min(24, Number($('adm-app-hours').value) || 2));
+  const essential = Boolean($('adm-app-essential') && $('adm-app-essential').checked);
+
+  if (!name || name.length < 2) return;
+
+  try {
+    const res = await fetch('/api/appliances', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, power, hours, factor: 1, essential })
+    });
+    if (res.ok) {
+      closeAdminApplianceModal();
+      await syncAppliancesFromServer();
+      showToast('Aparelho guardado e disponível para todos os clientes.', 'success');
+    } else {
+      showToast('Erro ao guardar aparelho.', 'error');
+    }
+  } catch {
+    showToast('Erro de rede ao guardar aparelho.', 'error');
+  }
+}
+window.handleSaveAdminAppliance = handleSaveAdminAppliance;
+
 function updateKpis() {
   const panelsCount = (adminProducts.panels || []).length;
   const invertersCount = (adminProducts.inverters || []).length;
@@ -757,6 +964,8 @@ function updateKpis() {
   if ($('kpi-panels-count')) $('kpi-panels-count').textContent = panelsCount;
   if ($('kpi-inverters-count')) $('kpi-inverters-count').textContent = invertersCount;
   if ($('kpi-batteries-count')) $('kpi-batteries-count').textContent = batteriesCount;
+  if ($('kpi-appliances-count')) $('kpi-appliances-count').textContent = getAllAvailableAppliances().length;
+  if (!appliancesLoaded) syncAppliancesFromServer();
 
   const panelsBifacial = (adminProducts.panels || []).filter((p) => p.panelType === 'bifacial_dual_glass' || (p.extra || '').toLowerCase().includes('bifacial')).length;
   const panelsMono = Math.max(0, panelsCount - panelsBifacial);
@@ -778,7 +987,7 @@ function switchCategory(category) {
   activeVoltageFilter = 'all';
   activeGroupFilter = 'all';
 
-  const categories = ['panels', 'inverters', 'batteries', 'settings'];
+  const categories = ['panels', 'inverters', 'batteries', 'appliances', 'settings'];
   categories.forEach((cat) => {
     const kpi = $('kpi-card-' + cat);
     if (kpi) kpi.classList.toggle('active', cat === category);
@@ -795,6 +1004,7 @@ function switchCategory(category) {
     panels: 'Painéis Solares (Módulos)',
     inverters: 'Inversores Híbridos & Controladores',
     batteries: 'Baterias & Armazenamento (BESS)',
+    appliances: 'Aparelhos Disponíveis (Potência Real)',
     settings: 'Configurações de Acesso & Manutenção do Catálogo'
   };
 
@@ -809,6 +1019,9 @@ function switchCategory(category) {
     if (category === 'settings') {
       pageTitleEl.textContent = 'Configurações de Acesso & Backup';
       pageDescEl.textContent = 'Altere a palavra-passe administrativa ou exporte/restaure o catálogo oficial da LECASU.';
+    } else if (category === 'appliances') {
+      pageTitleEl.textContent = 'Aparelhos Disponíveis & Potência Real';
+      pageDescEl.textContent = 'Consulte os aparelhos padrão e os equipamentos adicionados pelos clientes com a respectiva potência real (W) e consumo.';
     } else {
       pageTitleEl.textContent = 'Catálogo de Equipamentos Fotovoltaicos';
       pageDescEl.textContent = 'Os equipamentos cadastrados aqui ficam disponíveis automaticamente no portal de dimensionamento dos clientes.';
@@ -827,12 +1040,16 @@ function switchCategory(category) {
     } else if (category === 'batteries') {
       newBtnSpan.textContent = 'Nova Bateria';
       newBtn.style.display = 'inline-flex';
+    } else if (category === 'appliances') {
+      newBtnSpan.textContent = 'Novo Aparelho';
+      newBtn.style.display = 'inline-flex';
     } else {
       newBtn.style.display = 'none';
     }
   }
 
   const productsView = $('view-products');
+  const appliancesView = $('view-appliances');
   const settingsView = $('view-settings');
   const searchContainer = $('table-search-container');
   const subfiltersBar = $('admin-subfilters-bar');
@@ -841,6 +1058,7 @@ function switchCategory(category) {
 
   if (category === 'settings') {
     if (productsView) productsView.hidden = true;
+    if (appliancesView) appliancesView.hidden = true;
     if (settingsView) settingsView.hidden = false;
     if (searchContainer) searchContainer.hidden = true;
     if (subfiltersBar) subfiltersBar.hidden = true;
@@ -849,8 +1067,19 @@ function switchCategory(category) {
     if ($('current-category-count')) {
       $('current-category-count').textContent = 'Definições do Sistema';
     }
+  } else if (category === 'appliances') {
+    if (productsView) productsView.hidden = true;
+    if (appliancesView) appliancesView.hidden = false;
+    if (settingsView) settingsView.hidden = true;
+    if (searchContainer) searchContainer.hidden = false;
+    if (subfiltersBar) subfiltersBar.hidden = true;
+    if (brandFilterWrapper) brandFilterWrapper.hidden = true;
+    if (voltageFilterWrapper) voltageFilterWrapper.hidden = true;
+    renderAppliancesTable();
+    syncAppliancesFromServer();
   } else {
     if (productsView) productsView.hidden = false;
+    if (appliancesView) appliancesView.hidden = true;
     if (settingsView) settingsView.hidden = true;
     if (searchContainer) searchContainer.hidden = false;
     if (subfiltersBar) subfiltersBar.hidden = false;
@@ -1018,7 +1247,11 @@ window.onVoltageFilterChange = onVoltageFilterChange;
 
 function handleTableSearch(query) {
   filterQuery = (query || '').toLowerCase().trim();
-  renderTable();
+  if (activeCategory === 'appliances') {
+    renderAppliancesTable();
+  } else {
+    renderTable();
+  }
 }
 window.handleTableSearch = handleTableSearch;
 
@@ -1168,6 +1401,10 @@ function renderTable() {
    ======================================================== */
 
 function openNewProductModal() {
+  if (activeCategory === 'appliances') {
+    openAdminApplianceModal();
+    return;
+  }
   const cat = activeCategory === 'settings' ? 'inverters' : activeCategory;
 
   $('form-prod-id').value = '';
