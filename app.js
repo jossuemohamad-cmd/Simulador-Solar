@@ -303,28 +303,19 @@ function renderAppliancesList() {
   if (!container) return;
   container.replaceChildren();
 
-  // Mostra os aparelhos principais (não removidos) + quaisquer outros adicionados pelo utilizador
-  const displayIndices = PRIMARY_APPLIANCE_INDICES.filter((idx) => !removedPrimaryIndices.has(idx) || chosen.has(idx));
-  chosen.forEach((_, idx) => {
-    if (!displayIndices.includes(idx)) {
-      displayIndices.push(idx);
-    }
-  });
-
-  if (displayIndices.length === 0) {
+  if (chosen.size === 0) {
     const emptyMsg = document.createElement('div');
     emptyMsg.className = 'appliances-empty';
-    emptyMsg.textContent = 'Nenhum aparelho na lista. Clique em "Adicionar aparelho" abaixo.';
+    emptyMsg.textContent = 'Nenhum aparelho adicionado. Use "Selecionar aparelho" ou "Adicionar aparelho" abaixo.';
     container.append(emptyMsg);
     return;
   }
 
-  displayIndices.forEach((idx) => {
+  chosen.forEach((active, idx) => {
     const base = catalog[idx];
-    if (!base) return;
-    const active = chosen.get(idx);
-    const qty = active ? active.q : 0;
-    const hours = active ? active.h : '';
+    if (!active) return;
+    const qty = active.q;
+    const hours = active.h;
 
     const row = document.createElement('div');
     row.className = 'appliance-row';
@@ -334,28 +325,26 @@ function renderAppliancesList() {
 
     const nameEl = document.createElement('span');
     nameEl.className = 'appliance-name';
-    nameEl.textContent = active ? active.name : base[1];
+    nameEl.textContent = active.name || (base ? base[1] : 'Aparelho');
     info.append(nameEl);
 
-    if (qty > 0 || !PRIMARY_APPLIANCE_INDICES.includes(idx)) {
-      const actionsRow = document.createElement('div');
-      actionsRow.className = 'appliance-actions';
+    const actionsRow = document.createElement('div');
+    actionsRow.className = 'appliance-actions';
 
-      const adjustBtn = document.createElement('button');
-      adjustBtn.type = 'button';
-      adjustBtn.className = 'adjust-link';
-      adjustBtn.textContent = 'Ajustar';
-      adjustBtn.onclick = () => openAdjustModal(idx);
+    const adjustBtn = document.createElement('button');
+    adjustBtn.type = 'button';
+    adjustBtn.className = 'adjust-link';
+    adjustBtn.textContent = 'Ajustar';
+    adjustBtn.onclick = () => openAdjustModal(idx);
 
-      const removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.className = 'remove-link';
-      removeBtn.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>Remover</span>`;
-      removeBtn.onclick = () => removeAppliance(idx);
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'remove-link';
+    removeBtn.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>Remover</span>`;
+    removeBtn.onclick = () => removeAppliance(idx);
 
-      actionsRow.append(adjustBtn, removeBtn);
-      info.append(actionsRow);
-    }
+    actionsRow.append(adjustBtn, removeBtn);
+    info.append(actionsRow);
 
     const qtyInput = document.createElement('input');
     qtyInput.type = 'number';
@@ -1418,56 +1407,80 @@ function handleModalBackdrop(event, modalId) {
   }
 }
 
-function populateCatalogPicker() {
-  const picker = $('catalog-picker');
-  if (!picker) return;
-  picker.replaceChildren();
-
-  const customOpt = document.createElement('option');
-  customOpt.value = 'custom';
-  customOpt.textContent = '-- Escrever novo aparelho --';
-  picker.append(customOpt);
+function openSelectModal() {
+  const list = $('select-appliance-list');
+  if (!list) return;
+  list.replaceChildren();
 
   catalog.forEach((item, idx) => {
     if (item[0] === 'custom') return;
-    const opt = document.createElement('option');
-    opt.value = String(idx);
-    opt.textContent = `${item[1]} (${item[2]} W)`;
-    picker.append(opt);
+    const isAdded = chosen.has(idx);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'select-catalog-item';
+    btn.onclick = () => selectExistingAppliance(idx);
+
+    const info = document.createElement('div');
+    info.className = 'select-catalog-item-info';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'select-catalog-item-name';
+    nameEl.textContent = item[1];
+
+    const metaEl = document.createElement('span');
+    metaEl.className = 'select-catalog-item-meta';
+    metaEl.textContent = `${item[2]} W · ${item[3]} h/dia`;
+
+    info.append(nameEl, metaEl);
+
+    const actionEl = document.createElement('span');
+    actionEl.className = 'select-catalog-item-action';
+    actionEl.textContent = isAdded ? '+1 Qtd' : '+ Selecionar';
+
+    btn.append(info, actionEl);
+    list.append(btn);
   });
+
+  const modal = $('select-appliance-modal');
+  if (modal) modal.hidden = false;
 }
 
-function onPickCatalogItem(val) {
-  const nameInput = $('custom-name');
-  const powerInput = $('custom-power');
-  const hoursInput = $('custom-hours');
-  const essentialCheck = $('custom-essential');
+function closeSelectModal() {
+  const modal = $('select-appliance-modal');
+  if (modal) modal.hidden = true;
+}
 
-  if (val === 'custom') {
-    if (nameInput) nameInput.value = '';
-    if (powerInput) powerInput.value = '200';
-    if (hoursInput) hoursInput.value = '2';
-    if (essentialCheck) essentialCheck.checked = true;
-    return;
+function selectExistingAppliance(idx) {
+  const base = catalog[idx];
+  if (!base) return;
+
+  const existing = chosen.get(idx);
+  if (existing) {
+    existing.q = Math.min(100, existing.q + 1);
+  } else {
+    chosen.set(idx, {
+      iconKey: base[0],
+      name: base[1],
+      w: base[2],
+      h: base[3],
+      f: base[4],
+      q: 1,
+      essential: base[5] !== undefined ? Boolean(base[5]) : true
+    });
   }
 
-  const item = catalog[Number(val)];
-  if (!item) return;
-  if (nameInput) nameInput.value = item[1];
-  if (powerInput) powerInput.value = String(item[2]);
-  if (hoursInput) hoursInput.value = String(item[3]);
-  if (essentialCheck) essentialCheck.checked = item[5] !== undefined ? Boolean(item[5]) : true;
+  closeSelectModal();
+  hideValidationError(0);
+  render();
 }
 
 function openCustomModal() {
-  populateCatalogPicker();
-  const picker = $('catalog-picker');
-  if (picker && picker.options.length > 0) {
-    picker.selectedIndex = 0;
-    onPickCatalogItem(picker.value);
-  }
-  const qtyInput = $('custom-qty');
-  if (qtyInput) qtyInput.value = '1';
+  if ($('custom-name')) $('custom-name').value = '';
+  if ($('custom-power')) $('custom-power').value = '200';
+  if ($('custom-qty')) $('custom-qty').value = '1';
+  if ($('custom-hours')) $('custom-hours').value = '2';
+  if ($('custom-essential')) $('custom-essential').checked = true;
+
   const modal = $('custom-modal');
   if (modal) {
     modal.hidden = false;
@@ -1485,8 +1498,6 @@ function closeCustomModal() {
 function saveCustomModal(event) {
   event.preventDefault();
 
-  const picker = $('catalog-picker');
-  const picked = picker ? picker.value : 'custom';
   const nameInput = $('custom-name');
   const name = ((nameInput && nameInput.value) || '').trim();
   const power = Math.max(1, Math.min(50000, Number($('custom-power').value) || 200));
@@ -1499,20 +1510,9 @@ function saveCustomModal(event) {
     return;
   }
 
-  let targetIdx = -1;
-  if (picked !== 'custom') {
-    const idx = Number(picked);
-    const base = catalog[idx];
-    if (base && normalizeStr(base[1]) === normalizeStr(name)) {
-      targetIdx = idx;
-    }
-  }
-  if (targetIdx === -1) {
-    targetIdx = catalog.findIndex((item) => normalizeStr(item[1]) === normalizeStr(name));
-  }
+  const targetIdx = catalog.findIndex((item) => normalizeStr(item[1]) === normalizeStr(name));
 
   if (targetIdx !== -1) {
-    removedPrimaryIndices.delete(targetIdx);
     const base = catalog[targetIdx];
     chosen.set(targetIdx, {
       iconKey: base[0],
@@ -1605,6 +1605,7 @@ function printProposalA4() {
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeCustomModal();
+    closeSelectModal();
     closeAdjustModal();
     closeQuoteModal();
   }

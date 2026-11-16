@@ -17,8 +17,11 @@
 }
 
 html, body {
+  height: 100vh;
+  height: 100dvh;
   margin: 0;
   padding: 0;
+  overflow: hidden;
   background-color: var(--bg);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -26,18 +29,31 @@ html, body {
   line-height: 1.45;
 }
 
-/* Container Principal — Mobile First + Desktop Centralizado sem Sombra */
+/* Container Principal 100vh — Mobile First + Desktop Centralizado sem Sombra */
 .app-shell {
   width: 100%;
   max-width: 680px;
+  height: 100vh;
+  height: 100dvh;
   margin: 0 auto;
-  padding: 18px 20px 44px;
+  padding: 16px 20px 20px;
   background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Cabeçalho */
 .app-header {
-  margin-bottom: 22px;
+  flex-shrink: 0;
+  margin-bottom: 16px;
 }
 
 .brand-row {
@@ -95,6 +111,18 @@ html, body {
 }
 
 /* Secções das Etapas */
+.step-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+#step0.step-section {
+  overflow-y: hidden;
+}
+
 .step-section[hidden] {
   display: none !important;
 }
@@ -150,8 +178,12 @@ html, body {
 }
 
 .appliances-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  padding-right: 2px;
 }
 
 .appliance-row {
@@ -256,8 +288,87 @@ html, body {
 }
 
 .add-other-row {
-  padding: 16px 0;
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 0;
   border-bottom: 1px solid var(--line);
+}
+
+.btn-select-appliance {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1.5px solid var(--input-border);
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-select-appliance:hover {
+  border-color: var(--ink);
+  background-color: #f9fafb;
+}
+
+.select-catalog-list {
+  max-height: 60vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.select-catalog-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  font-family: inherit;
+}
+
+.select-catalog-item:hover {
+  background: var(--orange-tint);
+}
+
+.select-catalog-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.select-catalog-item-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.select-catalog-item-meta {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.select-catalog-item-action {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--orange);
+  flex-shrink: 0;
 }
 
 .btn-add-appliance {
@@ -304,10 +415,11 @@ html, body {
 
 /* Linha de Resumo Diário */
 .daily-summary-row {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 0 22px;
+  padding: 14px 0 16px;
 }
 
 .daily-summary-label {
@@ -323,9 +435,12 @@ html, body {
 
 /* Botões e Ações */
 .step-actions {
+  flex-shrink: 0;
+  margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+  padding-top: 8px;
 }
 
 .btn-orange-full {
@@ -675,7 +790,7 @@ html, body {
 /* Adaptação Desktop Limpa (Sem Sombra, Mesmo Fundo Branco) */
 @media (min-width: 768px) {
   .app-shell {
-    padding: 36px 24px 64px;
+    padding: 28px 24px 32px;
   }
 
   .app-title {
@@ -706,9 +821,21 @@ html, body {
 @media print {
   html, body {
     height: auto !important;
+    overflow: visible !important;
     background: #ffffff !important;
     color: #111111 !important;
     font-size: 11pt !important;
+  }
+
+  .app-shell {
+    height: auto !important;
+    overflow: visible !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .main-content {
+    overflow: visible !important;
   }
 
   .app-header,

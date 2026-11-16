@@ -21,7 +21,7 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="icon-192.png">
 
-  <link rel="stylesheet" href="style.css?v=20261116_05">
+  <link rel="stylesheet" href="style.css?v=20261116_06">
 </head>
 <body>
   <div class="app-shell">
@@ -60,6 +60,10 @@
         <div id="appliances-list" class="appliances-list"></div>
 
         <div class="add-other-row">
+          <button type="button" class="btn-select-appliance" onclick="openSelectModal()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span>Selecionar aparelho</span>
+          </button>
           <button type="button" class="btn-add-appliance" onclick="openCustomModal()">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             <span>Adicionar aparelho</span>
@@ -269,13 +273,9 @@
       </div>
       <form id="custom-form" onsubmit="saveCustomModal(event)">
         <div class="modal-body">
-          <div class="form-group">
-            <label for="catalog-picker">Escolher aparelho existente</label>
-            <select id="catalog-picker" onchange="onPickCatalogItem(this.value)"></select>
-          </div>
           <div class="form-group" id="custom-name-group">
             <label for="custom-name">Nome do aparelho</label>
-            <input type="text" id="custom-name" placeholder="Escreva o nome ou escolha acima" maxlength="60" required>
+            <input type="text" id="custom-name" placeholder="Ex.: Geleira, Bomba de água..." maxlength="60" required>
           </div>
           <div class="form-row-2">
             <div class="form-group">
@@ -301,6 +301,19 @@
           <button type="submit" class="btn-orange-sm">Adicionar aparelho</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: SELECIONAR APARELHO EXISTENTE -->
+  <div id="select-appliance-modal" class="modal-backdrop" hidden onclick="handleModalBackdrop(event, 'select-appliance-modal')">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="select-modal-title">
+      <div class="modal-head">
+        <h3 id="select-modal-title">Selecionar Aparelho</h3>
+        <button type="button" class="modal-close" onclick="closeSelectModal()" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="select-appliance-list" class="select-catalog-list"></div>
     </div>
   </div>
 
@@ -351,7 +364,7 @@
     </div>
   </div>
 
-  <script src="shared-catalog.js?v=20261116_05"></script>
-  <script src="app.js?v=20261116_05"></script>
+  <script src="shared-catalog.js?v=20261116_06"></script>
+  <script src="app.js?v=20261116_06"></script>
 </body>
 </html>
