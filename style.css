@@ -53,28 +53,41 @@ html, body {
 /* Cabeçalho */
 .app-header {
   flex-shrink: 0;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
 }
 
 .brand-row {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 12px;
+  text-decoration: none;
+  flex-shrink: 0;
 }
 
 .brand-logo {
-  height: 34px;
+  height: 30px;
   width: auto;
   display: block;
   object-fit: contain;
 }
 
-.app-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--ink);
-  letter-spacing: -0.02em;
-  margin-bottom: 14px;
+.app-title-pill {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--orange-hover);
+  background-color: var(--orange-tint);
+  border: 1px solid #fed7aa;
+  padding: 5px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
 /* Abas de Navegação */
@@ -88,9 +101,9 @@ html, body {
   appearance: none;
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-bottom: 2.5px solid transparent;
   margin-bottom: -1px;
-  padding: 10px 4px;
+  padding: 11px 6px;
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -98,6 +111,22 @@ html, body {
   cursor: pointer;
   text-align: center;
   transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+@media (min-width: 768px) {
+  .brand-logo {
+    height: 36px;
+  }
+
+  .app-title-pill {
+    font-size: 13px;
+    padding: 6px 14px;
+  }
+
+  .tab-btn {
+    font-size: 15px;
+    padding: 12px 8px;
+  }
 }
 
 .tab-btn:hover {
