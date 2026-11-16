@@ -373,7 +373,7 @@ function renderAppliancesList() {
     hoursInput.className = 'num-input';
     hoursInput.min = '0.1';
     hoursInput.max = '24';
-    hoursInput.step = '0.25';
+    hoursInput.step = 'any';
     hoursInput.placeholder = '—';
     hoursInput.value = qty > 0 ? String(hours) : '';
     hoursInput.setAttribute('aria-label', `Horas por dia de ${base[1]}`);
