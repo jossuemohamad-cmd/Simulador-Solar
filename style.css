@@ -221,8 +221,32 @@ html, body {
 }
 
 .add-other-row {
-  padding: 14px 0 16px;
+  padding: 16px 0;
   border-bottom: 1px solid var(--line);
+}
+
+.btn-add-appliance {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1.5px solid var(--orange);
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: var(--orange);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-add-appliance:hover {
+  background-color: var(--orange-tint);
+  color: var(--orange-hover);
+  border-color: var(--orange-hover);
 }
 
 .link-btn {

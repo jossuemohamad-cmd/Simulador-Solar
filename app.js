@@ -188,19 +188,11 @@ function saveSimulationSession() {
   }
 }
 
-function applyDefaultDemoLoads() {
-  // Valores iniciais práticos: 6x Lâmpada LED (5h), 1x Geleira (24h), 1x Televisão (4h)
-  chosen.clear();
-  chosen.set(0, { iconKey: catalog[0][0], name: catalog[0][1], w: catalog[0][2], h: 5, f: catalog[0][4], q: 6, essential: true });
-  chosen.set(2, { iconKey: catalog[2][0], name: catalog[2][1], w: catalog[2][2], h: 24, f: catalog[2][4], q: 1, essential: true });
-  chosen.set(1, { iconKey: catalog[1][0], name: catalog[1][1], w: catalog[1][2], h: 4, f: catalog[1][4], q: 1, essential: true });
-}
-
 function loadSimulationSession() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SESSION);
     if (!raw) {
-      applyDefaultDemoLoads();
+      chosen.clear();
       return 0;
     }
     const data = JSON.parse(raw);
@@ -246,14 +238,14 @@ function loadSimulationSession() {
     return 0;
   } catch (e) {
     console.warn('Erro ao restaurar sessão anterior:', e);
-    applyDefaultDemoLoads();
+    chosen.clear();
     return 0;
   }
 }
 
 function resetSimulation() {
   localStorage.removeItem(STORAGE_KEY_SESSION);
-  applyDefaultDemoLoads();
+  chosen.clear();
   if ($('client-name')) $('client-name').value = '';
   if ($('client-phone')) $('client-phone').value = '';
   if ($('location')) $('location').value = '';
@@ -353,7 +345,8 @@ function renderAppliancesList() {
     qtyInput.step = '1';
     qtyInput.value = String(qty);
     qtyInput.setAttribute('aria-label', `Quantidade de ${base[1]}`);
-    qtyInput.addEventListener('change', (e) => onApplianceQtyChange(idx, e.target.value));
+    qtyInput.addEventListener('input', (e) => onApplianceQtyChange(idx, e.target.value, true));
+    qtyInput.addEventListener('change', (e) => onApplianceQtyChange(idx, e.target.value, false));
 
     const hoursInput = document.createElement('input');
     hoursInput.type = 'number';
@@ -364,14 +357,15 @@ function renderAppliancesList() {
     hoursInput.placeholder = '—';
     hoursInput.value = qty > 0 ? String(hours) : '';
     hoursInput.setAttribute('aria-label', `Horas por dia de ${base[1]}`);
-    hoursInput.addEventListener('change', (e) => onApplianceHoursChange(idx, e.target.value));
+    hoursInput.addEventListener('input', (e) => onApplianceHoursChange(idx, e.target.value, true));
+    hoursInput.addEventListener('change', (e) => onApplianceHoursChange(idx, e.target.value, false));
 
     row.append(info, qtyInput, hoursInput);
     container.append(row);
   });
 }
 
-function onApplianceQtyChange(idx, rawValue) {
+function onApplianceQtyChange(idx, rawValue, liveOnly = false) {
   const q = Math.max(0, Math.min(100, Math.round(Number(rawValue) || 0)));
   const base = catalog[idx];
   if (!base) return;
@@ -395,18 +389,28 @@ function onApplianceQtyChange(idx, rawValue) {
     }
   }
   hideValidationError(0);
-  render();
+  if (liveOnly) {
+    update();
+  } else {
+    render();
+  }
 }
 
-function onApplianceHoursChange(idx, rawValue) {
-  const h = Math.max(0.1, Math.min(24, Number(rawValue) || 0));
+function onApplianceHoursChange(idx, rawValue, liveOnly = false) {
+  const num = Number(rawValue) || 0;
   const base = catalog[idx];
   if (!base) return;
 
+  if (num <= 0) {
+    if (!liveOnly) render();
+    return;
+  }
+
+  const h = Math.max(0.1, Math.min(24, num));
   const existing = chosen.get(idx);
   if (existing) {
     existing.h = h;
-  } else if (Number(rawValue) > 0) {
+  } else {
     chosen.set(idx, {
       iconKey: base[0],
       name: base[1],
@@ -418,7 +422,11 @@ function onApplianceHoursChange(idx, rawValue) {
     });
   }
   hideValidationError(0);
-  render();
+  if (liveOnly) {
+    update();
+  } else {
+    render();
+  }
 }
 
 function openAdjustModal(idx) {
@@ -1247,18 +1255,20 @@ function result(calcResult) {
   const iva = Math.round(subtotal * 0.16);
   const totalComIva = subtotal + iva;
 
-  // Atualiza UI simplificada do Resultado (Etapa 3)
+  // Atualiza UI do Resultado (Etapa 3) com cálculos e modelos reais
   if ($('result-price')) {
     $('result-price').textContent = totalComIva > 0 ? money(totalComIva) : 'Preço sob consulta';
   }
   if ($('res-panels')) {
-    $('res-panels').textContent = `${r.panels} ${r.panels === 1 ? 'painel' : 'painéis'} · ${fmt(r.pv)} kWp`;
+    $('res-panels').textContent = `${r.panels} × ${r.selectedPanel.name} · ${fmt(r.pv)} kWp`;
   }
   if ($('res-inverter')) {
-    $('res-inverter').textContent = `${fmt(r.inv)} kW`;
+    $('res-inverter').textContent = `${r.invQty} × ${r.selectedInverter.name} · ${fmt(r.inv)} kW`;
   }
   if ($('res-battery')) {
-    $('res-battery').textContent = r.batteries > 0 ? `${fmt(r.bat)} kWh` : 'Sem baterias';
+    $('res-battery').textContent = r.batteries > 0
+      ? `${r.batteries} × ${r.selectedBattery.name} · ${fmt(r.bat)} kWh`
+      : 'Sem baterias (Autoconsumo)';
   }
 
   const allItems = [
@@ -1388,30 +1398,27 @@ function populateCatalogPicker() {
   if (!picker) return;
   picker.replaceChildren();
 
+  const customOpt = document.createElement('option');
+  customOpt.value = 'custom';
+  customOpt.textContent = '-- Escrever novo aparelho --';
+  picker.append(customOpt);
+
   catalog.forEach((item, idx) => {
-    if (PRIMARY_APPLIANCE_INDICES.includes(idx)) return;
     if (item[0] === 'custom') return;
     const opt = document.createElement('option');
     opt.value = String(idx);
     opt.textContent = `${item[1]} (${item[2]} W)`;
     picker.append(opt);
   });
-
-  const customOpt = document.createElement('option');
-  customOpt.value = 'custom';
-  customOpt.textContent = 'Outro aparelho personalizado...';
-  picker.append(customOpt);
 }
 
 function onPickCatalogItem(val) {
-  const nameGroup = $('custom-name-group');
   const nameInput = $('custom-name');
   const powerInput = $('custom-power');
   const hoursInput = $('custom-hours');
   const essentialCheck = $('custom-essential');
 
   if (val === 'custom') {
-    if (nameGroup) nameGroup.hidden = false;
     if (nameInput) nameInput.value = '';
     if (powerInput) powerInput.value = '200';
     if (hoursInput) hoursInput.value = '2';
@@ -1421,7 +1428,7 @@ function onPickCatalogItem(val) {
 
   const item = catalog[Number(val)];
   if (!item) return;
-  if (nameGroup) nameGroup.hidden = true;
+  if (nameInput) nameInput.value = item[1];
   if (powerInput) powerInput.value = String(item[2]);
   if (hoursInput) hoursInput.value = String(item[3]);
   if (essentialCheck) essentialCheck.checked = item[5] !== undefined ? Boolean(item[5]) : true;
@@ -1434,8 +1441,15 @@ function openCustomModal() {
     picker.selectedIndex = 0;
     onPickCatalogItem(picker.value);
   }
+  const qtyInput = $('custom-qty');
+  if (qtyInput) qtyInput.value = '1';
   const modal = $('custom-modal');
-  if (modal) modal.hidden = false;
+  if (modal) {
+    modal.hidden = false;
+    setTimeout(() => {
+      if ($('custom-name')) $('custom-name').focus();
+    }, 50);
+  }
 }
 
 function closeCustomModal() {
@@ -1448,32 +1462,42 @@ function saveCustomModal(event) {
 
   const picker = $('catalog-picker');
   const picked = picker ? picker.value : 'custom';
+  const nameInput = $('custom-name');
+  const name = ((nameInput && nameInput.value) || '').trim();
   const power = Math.max(1, Math.min(50000, Number($('custom-power').value) || 200));
   const qty = Math.max(1, Math.min(100, Math.round(Number($('custom-qty').value) || 1)));
   const hours = Math.max(0.1, Math.min(24, Number($('custom-hours').value) || 1));
   const essential = Boolean($('custom-essential').checked);
 
+  if (!name || name.length < 2) {
+    if (nameInput) nameInput.focus();
+    return;
+  }
+
+  let targetIdx = -1;
   if (picked !== 'custom') {
     const idx = Number(picked);
     const base = catalog[idx];
-    if (base) {
-      chosen.set(idx, {
-        iconKey: base[0],
-        name: base[1],
-        w: power,
-        h: hours,
-        f: base[4],
-        q: qty,
-        essential: essential
-      });
+    if (base && normalizeStr(base[1]) === normalizeStr(name)) {
+      targetIdx = idx;
     }
+  }
+  if (targetIdx === -1) {
+    targetIdx = catalog.findIndex((item) => normalizeStr(item[1]) === normalizeStr(name));
+  }
+
+  if (targetIdx !== -1) {
+    const base = catalog[targetIdx];
+    chosen.set(targetIdx, {
+      iconKey: base[0],
+      name: base[1],
+      w: power,
+      h: hours,
+      f: base[4],
+      q: qty,
+      essential: essential
+    });
   } else {
-    const nameInput = $('custom-name');
-    const name = ((nameInput && nameInput.value) || '').trim();
-    if (!name || name.length < 2) {
-      if (nameInput) nameInput.focus();
-      return;
-    }
     const newIndex = catalog.length;
     catalog.push(['custom', name.slice(0, 60), power, hours, 1, essential]);
     chosen.set(newIndex, {

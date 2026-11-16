@@ -21,7 +21,7 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="icon-192.png">
 
-  <link rel="stylesheet" href="style.css?v=20261116_01">
+  <link rel="stylesheet" href="style.css?v=20261116_02">
 </head>
 <body>
   <div class="app-shell">
@@ -60,7 +60,10 @@
         <div id="appliances-list" class="appliances-list"></div>
 
         <div class="add-other-row">
-          <button type="button" class="link-btn" onclick="openCustomModal()">+ Outro aparelho</button>
+          <button type="button" class="btn-add-appliance" onclick="openCustomModal()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Adicionar aparelho</span>
+          </button>
         </div>
 
         <div class="daily-summary-row">
@@ -130,7 +133,7 @@
           </div>
         </div>
 
-        <p class="result-caption">Capacidades ilustrativas</p>
+        <p class="result-caption">Estimativa técnica baseada no catálogo oficial LECASU (IVA 16% incluído)</p>
 
         <div class="step-actions">
           <button type="button" class="btn-orange-full" onclick="openQuoteModal()">Pedir cotação</button>
@@ -267,12 +270,12 @@
       <form id="custom-form" onsubmit="saveCustomModal(event)">
         <div class="modal-body">
           <div class="form-group">
-            <label for="catalog-picker">Escolher aparelho</label>
+            <label for="catalog-picker">Escolher aparelho existente</label>
             <select id="catalog-picker" onchange="onPickCatalogItem(this.value)"></select>
           </div>
-          <div class="form-group" id="custom-name-group" hidden>
+          <div class="form-group" id="custom-name-group">
             <label for="custom-name">Nome do aparelho</label>
-            <input type="text" id="custom-name" placeholder="Ex.: Bomba de piscina" maxlength="60">
+            <input type="text" id="custom-name" placeholder="Escreva o nome ou escolha acima" maxlength="60" required>
           </div>
           <div class="form-row-2">
             <div class="form-group">
@@ -280,7 +283,7 @@
               <input type="number" id="custom-power" min="1" max="50000" value="200" required>
             </div>
             <div class="form-group">
-              <label for="custom-qty">Qtd.</label>
+              <label for="custom-qty">Qtd</label>
               <input type="number" id="custom-qty" min="1" max="100" value="1" required>
             </div>
           </div>
@@ -295,7 +298,7 @@
         </div>
         <div class="modal-foot">
           <button type="button" class="btn-outline" onclick="closeCustomModal()">Cancelar</button>
-          <button type="submit" class="btn-orange-sm">Adicionar</button>
+          <button type="submit" class="btn-orange-sm">Adicionar aparelho</button>
         </div>
       </form>
     </div>
@@ -348,7 +351,7 @@
     </div>
   </div>
 
-  <script src="shared-catalog.js?v=20261116_01"></script>
-  <script src="app.js?v=20261116_01"></script>
+  <script src="shared-catalog.js?v=20261116_02"></script>
+  <script src="app.js?v=20261116_02"></script>
 </body>
 </html>
