@@ -1282,20 +1282,18 @@ function result(calcResult) {
   const iva = Math.round(subtotal * 0.16);
   const totalComIva = subtotal + iva;
 
-  // Atualiza UI do Resultado (Etapa 3) com cálculos e modelos reais
+  // Atualiza UI do Resultado (Etapa 3) conforme layout limpo (sem nomes/marcas de equipamentos)
   if ($('result-price')) {
-    $('result-price').textContent = totalComIva > 0 ? money(totalComIva) : 'Preço sob consulta';
+    $('result-price').textContent = 'Preço sob consulta';
   }
   if ($('res-panels')) {
-    $('res-panels').textContent = `${r.panels} × ${r.selectedPanel.name} · ${fmt(r.pv)} kWp`;
+    $('res-panels').textContent = `${r.panels} ${r.panels === 1 ? 'painel' : 'painéis'} · ${fmt(r.pv)} kWp`;
   }
   if ($('res-inverter')) {
-    $('res-inverter').textContent = `${r.invQty} × ${r.selectedInverter.name} · ${fmt(r.inv)} kW`;
+    $('res-inverter').textContent = `${fmt(r.inv)} kW`;
   }
   if ($('res-battery')) {
-    $('res-battery').textContent = r.batteries > 0
-      ? `${r.batteries} × ${r.selectedBattery.name} · ${fmt(r.bat)} kWh`
-      : 'Sem baterias (Autoconsumo)';
+    $('res-battery').textContent = r.batteries > 0 ? `${fmt(r.bat)} kWh` : 'Sem baterias';
   }
 
   const allItems = [
